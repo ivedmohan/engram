@@ -272,15 +272,49 @@ engram/
   requirement) still needs wiring into the real `extract.ts` pipeline (T4.4) — this only proves the
   provider call itself works end to end against live Groq, not the full pipeline yet.
   `ollama.ts` for embeddings: not yet built — deferred, see note on T4.5 below.
-- [ ] T4.2 `memory/redact.ts`: regexes for common key formats (`sk-`, `sk-ant-`, `AIza`, `ghp_`, `xox[bp]-`, AWS `AKIA`, JWTs, PEM blocks, 0x-prefixed 64-hex private keys, 12/24-word mnemonics, `KEY=value` lines in env-like text). Unit-test it.
-- [ ] T4.3 `prompts.ts`: extraction prompt + reconciliation prompt (§6.1). Include 3–4 few-shot examples, including a supersede example (Express → Hono).
-- [ ] T4.4 `extract.ts` → `reconcile.ts` → `write.ts` wired into the queue.
-- [ ] T4.5 `recall.ts` implementing §6.2.
-- [ ] T4.6 `scripts/seed-demo.ts`: reproduces the §2 demo state without LLM calls (use fixed embeddings or call embed only).
-- **Done when:** feeding the §2 conversation text to `/ingest` produces the right memories and a SUPERSEDES edge, and `/recall` for "relayer framework" returns Hono first with provenance.
-  **Note:** the recall half of this is already true today (see T2) via fulltext+entity-expand, with no
-  embeddings involved — T4.5's embedding-based vector search is an enhancement to ranking quality, not
-  a prerequisite for recall to work at all for the demo.
+- [x] T4.2 `memory/redact.ts` — ✅ done 2026-10-16. Patterns for Anthropic/Groq/OpenAI/Google/GitHub/Slack
+  keys, AWS access key ids, JWTs, PEM blocks, 0x-prefixed eth private keys, `KEY=value`-style env lines,
+  and a 12/24-word mnemonic heuristic. **Found and fixed a real false-positive while writing the test
+  suite:** a naive "12 lowercase words in a row" regex flags ordinary prose (any 12-word sentence made
+  of short words) as a possible seed phrase — fixed by rejecting any candidate run containing common
+  function words (the/a/is/we/to/...), since real mnemonics never do. 13/13 tests pass
+  (`npm run` via `scripts/test-redact.ts`), including both the false-positive-prevention case and a
+  true-positive nonsense-word case.
+  **Separate near-miss, not a redact.ts bug:** while writing the test file, the REAL Groq key (pasted
+  earlier in chat) was used as a literal fixture instead of a fake one. GitHub's push protection caught
+  it before it reached the remote; the unpushed commit was amended to use fake fixtures instead and
+  re-verified clean before pushing. See PROGRESS.md for the full incident note.
+- [x] T4.3 `llm/prompts.ts` — ✅ done. Extraction prompt (3 few-shot examples: a decision+preference
+  extraction, a "nothing worth remembering" restraint example, and a global-scope preference example)
+  and reconciliation prompt (4 few-shot examples: ADD, SUPERSEDE — the Express→Hono example from this
+  task — DUPLICATE, and CONTRADICT). Both paired with zod schemas (`ExtractionResultSchema`,
+  `ReconciliationResultSchema`) for the validation layer in T4.1's `completeJsonValidated`.
+- [x] T4.4 `memory/extract.ts` → `memory/reconcile.ts` → `memory/write.ts`, wired into `/ingest`'s queue
+  job in `daemon/routes.ts` — ✅ done, verified live end to end (not just unit-level):
+  seeded "Relayer uses Express" via `/memories`, then POSTed the exact §2 demo line to `/ingest`; the
+  daemon log showed `2 candidate(s) -> SUPERSEDE(<express-id>), ADD` and the graph confirmed Express
+  flipped to `status: superseded` with a real `SUPERSEDES` edge to the new Hono memory — fully automatic,
+  no manual `/memories/supersede` call.
+  **Reliability note found during testing:** reconciliation is an LLM judgment call, not a deterministic
+  function — on one early run (before the bug below was found) it classified the same Hono-vs-Express
+  pair as `ADD` instead of `SUPERSEDE`. Isolated testing (3/3 consistent `SUPERSEDE`) suggests the model
+  itself is actually fairly reliable on this exact case; log reconciliation decisions in production so
+  occasional misses are visible, and lean on T4.6's deterministic seed script for anything that must not
+  depend on model judgment (the demo video).
+  `findMemoryByHash` exact-dedup and the `findSimilarMemories` (fulltext + entity-expand) candidate
+  lookup both reuse T2's existing query functions — no new graph-layer code was needed for this.
+- [ ] T4.5 `recall.ts` implementing §6.2 — **not built as a separate module**; its logic (vector +
+  fulltext + entity-expand, merge, rank) already lives inline in `daemon/routes.ts`'s `/recall` handler
+  from T2, minus the vector-search leg (no embedding provider wired yet — see T4.1). Recall already
+  works for the demo without it (fulltext + entity-expand alone). Extracting it into its own module is
+  pure refactoring, not new capability — deprioritized below T5/T6 unless time allows.
+- [x] T4.6 `scripts/seed-demo.ts` — ✅ done, verified: reproduces the exact §2 end-state (Express
+  superseded → Hono active, pnpm active, across a Tuesday/Thursday/Thursday session timeline with a
+  Cursor session registered for the recall step) directly against the graph layer, no LLM calls. Derives
+  the project slug via the real `resolveProject()` — not a hardcoded slug — so the daemon serving
+  `cwd=/tmp/demo-relayer` actually sees the seeded data; confirmed via live `/context` and `/recall`
+  calls after running the script fresh.
+- **Done when:** feeding the §2 conversation text to `/ingest` produces the right memories and a SUPERSEDES edge, and `/recall` for "relayer framework" returns Hono first with provenance. ✅ both verified live.
 
 ### T5. Claude Code integration (MUST) — automatic capture
 - [ ] T5.1 VERIFIED (code.claude.com/docs/en/hooks): all five events exist exactly as assumed, plus a larger set

@@ -19,6 +19,8 @@ import {
   graphDump,
 } from '../graph/queries.js';
 import { enqueue, queueDepth } from './queue.js';
+import { extractMemories } from '../memory/extract.js';
+import { writeExtractedMemories } from '../memory/write.js';
 
 type Scope = 'project' | 'global';
 
@@ -75,14 +77,49 @@ const ingestSchema = z.object({
 
 routes.post('/ingest', async (c) => {
   const body = ingestSchema.parse(await c.req.json());
-  // Extraction/reconciliation pipeline (T4) needs an LLM provider key and isn't wired yet.
-  // Accept and queue now so the API shape is final; the job currently just logs.
+  const project = resolveProject(body.cwd);
+
   enqueue(async () => {
+    const projectGraph = await getGraph(projectGraphSlug(project.slug));
+    const globalGraph = await getGraph(GLOBAL_GRAPH_SLUG);
+
+    await upsertSession(projectGraph, {
+      id: body.sessionId,
+      tool: body.tool,
+      cwd: body.cwd,
+      projectSlug: project.slug,
+      projectName: project.name,
+      projectRoot: project.root,
+    });
+
+    const conversationText = body.messages.map((m) => `${m.role}: ${m.text}`).join('\n');
+    const extraction = await extractMemories(conversationText);
+
+    if (extraction.memories.length === 0) {
+      console.log(`[ingest] session ${body.sessionId} (${body.tool}): nothing durable to remember`);
+      return;
+    }
+
+    const outcomes = await writeExtractedMemories(
+      projectGraph,
+      globalGraph,
+      {
+        sessionId: body.sessionId,
+        tool: body.tool,
+        cwd: body.cwd,
+        projectSlug: project.slug,
+        projectName: project.name,
+        projectRoot: project.root,
+      },
+      extraction,
+    );
+
     console.log(
-      `[ingest] queued ${body.messages.length} message(s) for session ${body.sessionId} (${body.tool}) — ` +
-        `extraction pipeline not implemented yet (T4), no LLM provider configured`,
+      `[ingest] session ${body.sessionId} (${body.tool}): ${extraction.memories.length} candidate(s) -> ` +
+        outcomes.map((o) => `${o.action}${o.relatedId ? `(${o.relatedId})` : ''}`).join(', '),
     );
   });
+
   return c.json({ accepted: true, queued: body.messages.length }, 202);
 });
 

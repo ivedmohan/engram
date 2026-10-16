@@ -100,10 +100,38 @@
     gitignored local `.env` (confirmed not tracked by git), never committed or logged elsewhere. Ved
     should rotate it in the Groq console at his convenience since it's now in that chat's history.
 
+- **2026-10-16 — T4.2–T4.4, T4.6 complete: the full automatic-capture pipeline works end to end.**
+  - `src/memory/redact.ts` + `scripts/test-redact.ts` (13/13 passing), `src/llm/prompts.ts`
+    (extraction + reconciliation prompts with zod schemas), `src/memory/extract.ts`,
+    `src/memory/reconcile.ts`, `src/memory/write.ts`, all wired into `/ingest`'s queue job.
+  - **Live end-to-end proof, not just unit tests:** seeded "Relayer uses Express" via `/memories`, then
+    POSTed the exact §2 conversation line to `/ingest`. The daemon automatically extracted two
+    memories, reconciled the Hono one against the existing Express memory, and created a real
+    `SUPERSEDES` edge — Express flipped to `status: superseded` with no manual intervention. This is
+    the core hackathon pitch (decisions supersede automatically, across a shared graph) working for
+    real, not simulated.
+  - Built `scripts/seed-demo.ts`: deterministic, no-LLM fallback that reproduces the exact §2 end-state.
+    Verified it derives the project slug via the real `resolveProject()` (an earlier draft hardcoded a
+    different slug, which would have seeded a graph the daemon's `cwd`-based lookup could never find —
+    caught and fixed before committing).
+  - Deferred: `recall.ts` as its own module (T4.5) — the logic already lives inline in
+    `daemon/routes.ts` from T2 and recall already works without it; pure refactor, not new capability.
+    Also deferred: `ollama.ts` embeddings — recall works via fulltext+entity-expand without them.
+  - **Reliability finding:** LLM-based reconciliation is a judgment call, not deterministic — one early
+    test run classified a clear supersession as `ADD` instead. Isolated repeat testing (3/3) suggests
+    `gpt-oss-120b` is actually fairly consistent on this exact case, but it's not a guarantee — this is
+    exactly why `seed-demo.ts` exists as a deterministic fallback for the recorded video.
+  - **Security incident, resolved:** while writing `scripts/test-redact.ts`, the real Groq key (the one
+    pasted in chat earlier) was used as a literal test fixture instead of a fake one. GitHub's push
+    protection rejected the push before it reached the remote. Since the bad commit was local-only,
+    amended it in place with fake fixtures and verified with `git log -p` that the real key no longer
+    appears anywhere in history before re-pushing. No remote exposure occurred. This is a second,
+    independent reason (beyond the original chat-paste) to rotate that key.
+
 ## Next
 
-- T4.2–T4.6: redact.ts, prompts.ts, extract/reconcile/write pipeline wired into the queue, seed-demo.ts.
-- T5: Claude Code hooks (SessionStart/Stop/SessionEnd) for automatic capture.
+- T5: Claude Code hooks (SessionStart/Stop/SessionEnd) for automatic capture — this is what makes
+  ingestion actually automatic instead of requiring a manual `/ingest` curl call.
 - T6: `engram install cursor` / `engram install gemini-cli` config writers.
 
 ## Open questions
@@ -112,6 +140,14 @@
   extraction/reconciliation can be built — pick one and wire Ollama for local embeddings alongside it.
 - Deploy decision for T8.3 (read-only web UI against FalkorDB Cloud vs. local-only + video) — defer to
   Sunday per the plan, but flag now that FalkorDB Cloud free-tier limits weren't checked in this pass.
+
+- **2026-10-16 — near-miss: real Groq key almost got committed.** Used the user's actual key as a
+  literal test fixture in `scripts/test-redact.ts` (should have used an obviously-fake placeholder of
+  the same shape from the start). GitHub's push protection caught it and rejected the push before
+  anything reached the remote. Since the bad commit was local-only (never pushed), amended it in place
+  to swap in fake fixtures rather than leaving a real secret sitting in git history — confirmed clean
+  with `git log -p` before re-pushing. No remote exposure occurred, but reinforces the standing
+  recommendation to rotate the key regardless (it was still pasted in chat earlier).
 
 ## Gotchas
 
@@ -126,6 +162,15 @@
 - A model being documented on Groq's site doesn't mean a given API key has access to it — Kimi K2 is
   real and documented but 404'd on this key. Always confirm with a live `GET /openai/v1/models` call
   against the actual key in use before hardcoding a model id.
+- LLM-based reconciliation (ADD/DUPLICATE/SUPERSEDE/CONTRADICT classification) is probabilistic, not
+  deterministic — don't assume one successful test run means it always classifies the same input the
+  same way. This is precisely why `scripts/seed-demo.ts` exists: the recorded demo video should not
+  depend on a live model call succeeding.
+- Any script or test fixture that needs to address "the project at path X" must derive the project slug
+  via the real `resolveProject()`, not a hand-picked string — the daemon's own `cwd`-based lookup uses
+  that same function, so a mismatched slug silently seeds a graph nothing will ever query.
+- Never use a real secret as a test fixture, even "just for one test" — GitHub's push protection will
+  catch it, but the simpler fix is to never type the real value into a fixture file in the first place.
 
 - `Memory.embedding` writes MUST use `vecf32($vec)` — a plain array silently fails to use the vector
   index (falls back to full scan with no error).
