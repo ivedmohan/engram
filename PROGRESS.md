@@ -226,10 +226,26 @@
   This is exactly the kind of thing a hackathon judge running the README's own quickstart would have
   hit immediately — worth the extra verification pass.
 
+- **2026-10-17 — T8.1 (README) done: every quickstart command actually run, not just written.**
+  - Wrote `README.md`: problem statement, "why a graph" (supersession/provenance/graph-expansion/
+    multigraph), quick start, architecture diagram, client support table, privacy section, hackathon
+    track, status pointing at this file and `PLAN.md`.
+  - Tested `node dist/cli.js up` and `node dist/cli.js install cursor/gemini-cli --scope project` for
+    real, both from throwaway directories — confirmed correct generated JSON referencing the actual
+    built `dist/mcp/server.js` path. `install claude-code` was NOT run for real (same held boundary as
+    T5.4: its MCP half shells out to the real `claude mcp add`, which mutates the real `~/.claude.json`
+    regardless of invocation directory).
+  - Captured a real screenshot of the live web UI via the `claude-in-chrome` browser tool
+    (`docs/web-ui.jpg`) and embedded it in the README instead of a placeholder GIF — genuine proof the
+    system works, pending a proper recorded demo video (T8.2, which needs Ved).
+
 ## Next
 
 - T6.3 (Antigravity) stays demoted/skipped per its own note above.
-- T8: ship — README, demo video, deploy decision, BLOG.md, submit.
+- **T8.2 (demo video), T8.3 (deploy decision), T8.5 (submit) are genuinely blocked on Ved** — none of
+  these can be done autonomously (recording/narrating a video, a hosting decision that may need a
+  FalkorDB Cloud account, and an actual hackathon-platform submission from his account).
+- T8.4 (`BLOG.md`) is the one remaining T8 item that doesn't need Ved — reasonable next step.
 - Decide with Ved whether to actually run `engram install claude-code` now (dogfooding, per CLAUDE.md
   §6) or hold off until closer to the demo — same open question as after T5, still unresolved.
 

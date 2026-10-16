@@ -443,11 +443,26 @@ engram/
   localhost, would matter for the FalkorDB-Cloud-backed read-only deploy option in T8.3 if that's chosen.
 
 ### T8. Ship (MUST) — Sun 18 Oct, finish by ~9 PM IST
-- [ ] T8.1 README: problem, 30-second GIF, the "why a graph" section (supersession, provenance, graph expansion, multigraph isolation), quick start (`docker compose up -d && npx engram up && npx engram install claude-code`), architecture diagram, privacy section, and the hackathon track.
+- [x] T8.1 README — ✅ done 2026-10-17. Problem statement, "why a graph" section (supersession,
+  provenance, graph expansion, multigraph isolation), quick start, architecture diagram, client support
+  table, privacy section, hackathon track. **Every command in the quick start was actually run, not
+  just written** — `docker compose up -d`, `npm install && npm run build`, `node dist/cli.js up` (from
+  a throwaway dir, to catch exactly the kind of path bug found above), `node dist/cli.js install
+  cursor/gemini-cli --scope project` (also from a throwaway dir — confirmed real generated JSON with
+  the correct built MCP server path). **Gap, documented rather than overclaimed:** `install claude-code`
+  still wasn't run for real end-to-end, since its MCP-registration half shells out to the real `claude
+  mcp add`, which would mutate the actual `~/.claude.json` regardless of which directory it's run
+  from — same boundary held since T5/T5.4.
+  Used a **real screenshot from the actual running web UI** (`docs/web-ui.jpg`, captured via the
+  claude-in-chrome browser tool) instead of a placeholder GIF — honest proof the thing works, even
+  though a proper demo video still needs to be recorded (T8.2).
 - [ ] T8.2 Demo video (2–3 min) following §2 exactly. Use `seed-demo.ts` as a fallback.
+  **Blocked on Ved** — recording/narrating a video isn't something that can be done autonomously.
 - [ ] T8.3 Deployment: since this is local-first, deploy a **read-only demo** of the web UI against FalkorDB Cloud with the seeded graph (app.falkordb.cloud), OR clearly document local setup and rely on the video. Decide by Sun noon.
+  **Blocked on Ved** — needs a decision (and possibly a FalkorDB Cloud account) only he can make/provide.
 - [ ] T8.4 `BLOG.md` (side prize: best blog post): the daily pain, why vector memory isn't enough, the graph model, supersession, and lessons learned.
 - [ ] T8.5 Submit on WeMakeDevs **before 11:59 PM IST, 18 Oct**. Re-read the rules page first.
+  **Blocked on Ved** — requires his actual hackathon account/submission.
 
 ### T9. Stretch (only after all MUST tasks)
 - [ ] *T9.1* Chrome MV3 extension, target **claude.ai first** (easiest to test against; gemini.google.com has
