@@ -179,6 +179,15 @@ engram/
 
 ### T0. Setup (MUST) — target: Fri 16 Oct evening
 - [x] T0.1 `git init`, `package.json` (type module, bin `engram` → `dist/cli.js`), `tsconfig.json`, `.gitignore`, `.env.example`. Pushed to github.com/ivedmohan/engram.
+  **Correction (found 2026-10-17 while prepping T8.1):** the original `tsconfig.json` had
+  `rootDir: "."` to accommodate `scripts/**` alongside `src/**`, which made `tsc` emit to
+  `dist/src/cli.js` instead of `dist/cli.js` — silently breaking the `bin` field above and every
+  self-referential path computation that assumes a specific nesting depth (daemon's `process.chdir()`,
+  MCP server's daemon-path resolution, installer command resolution). This went unnoticed for all of
+  T0–T7 because only `tsc --noEmit` was run, never an actual `npm run build`. Fixed: `rootDir: "./src"`,
+  dropped `scripts/**` from this config (scripts are dev-only, run via `tsx`, never built), added
+  `tsconfig.scripts.json` for still type-checking them. Verified by running the actual built
+  `dist/cli.js`/`dist/mcp/server.js`/`dist/daemon/server.js` end to end, not just recompiling cleanly.
 - [x] T0.2 `docker-compose.yml` with `falkordb/falkordb:latest`, ports 6379 and 3000, and a named volume for persistence. Confirmed running (FalkorDB 4.22.1).
 - [x] T0.3 Install deps: `falkordb`, `@modelcontextprotocol/sdk`, `zod`, `hono`, `@hono/node-server`, `ulid`; dev: `typescript`, `tsx`, `@types/node`.
 - [x] T0.4 Create `PROGRESS.md` with sections: Done, Next, Open questions, Gotchas.

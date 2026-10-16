@@ -11,7 +11,12 @@
     "dev:daemon": "tsx src/daemon/server.ts",
     "dev:mcp": "tsx src/mcp/server.ts",
     "build": "tsc",
-    "smoke": "tsx scripts/smoke.ts"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
+    "smoke": "tsx scripts/smoke.ts",
+    "test:redact": "tsx scripts/test-redact.ts",
+    "test:install": "tsx scripts/test-install.ts",
+    "test": "npm run smoke && npm run test:redact && npm run test:install",
+    "seed-demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",

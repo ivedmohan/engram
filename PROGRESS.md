@@ -204,6 +204,28 @@
   - Only implemented/verified the dark palette (the demo's hero shot per T7.5) — a light-mode token set
     exists in the CSS but hasn't been screenshot-checked.
 
+- **2026-10-17 — build-system bug found and fixed while preparing T8.1's quickstart commands.**
+  `npm run build` had never actually been run before (only `tsc --noEmit` throughout T0–T7) — running
+  it for real surfaced two bugs the type-checker alone couldn't catch:
+  1. `tsconfig.json` had `rootDir: "."` (to accommodate both `src/**` and `scripts/**`), so `tsc`
+     preserved the `src/` prefix in output — `dist/src/cli.js`, not `dist/cli.js`. `package.json`'s
+     `bin` field (`dist/cli.js`) was wrong from the start and would have failed for anyone who actually
+     built and ran it.
+  2. Worse: every self-referential path computation (`mcp/server.ts`'s daemon-path resolution,
+     `daemon/server.ts`'s `process.chdir()` to the package root, `install/resolve.ts`'s MCP command
+     resolution) assumes a specific nesting depth relative to its own file. The extra `src/` level in
+     the built output would have silently resolved these one directory too shallow.
+  Fixed by setting `rootDir: "./src"` and dropping `scripts/**` from the main `tsconfig.json`'s
+  `include` (scripts are dev-only, always run via `tsx`, never need building) — added
+  `tsconfig.scripts.json` (extends the base config, `rootDir: "."`, includes both `src/` and `scripts/`)
+  so `scripts/*.ts` still gets type-checked via a new `npm run typecheck` script.
+  **Verified the fix by actually running the built artifacts, not just re-running `tsc --noEmit`:**
+  `node dist/cli.js up` from `/tmp` correctly served both the static UI and the API; with no daemon
+  running, the built MCP server (`dist/mcp/server.js`) correctly auto-detected that and spawned the
+  built daemon (`dist/daemon/server.js`), which then answered the real recall query correctly.
+  This is exactly the kind of thing a hackathon judge running the README's own quickstart would have
+  hit immediately — worth the extra verification pass.
+
 ## Next
 
 - T6.3 (Antigravity) stays demoted/skipped per its own note above.
