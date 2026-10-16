@@ -1,4 +1,13 @@
+import { fileURLToPath } from 'node:url';
+
+// Always run from this package's own directory, regardless of what cwd spawned us (hooks/MCP can
+// auto-start the daemon from any project's directory). Must happen before anything below that
+// resolves a relative path — notably serveStatic, which resolves `root` eagerly at setup time, not
+// per-request, so getting this ordering right matters.
+process.chdir(fileURLToPath(new URL('../../', import.meta.url)));
+
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { routes } from './routes.js';
 import { loadConfig, ensureEngramHome, ENGRAM_HOME, loadDotEnv } from '../config.js';
@@ -8,6 +17,7 @@ import { writeFileSync } from 'node:fs';
 
 const app = new Hono();
 app.route('/', routes);
+app.use('/*', serveStatic({ root: './src/web' }));
 
 export function startDaemon() {
   loadDotEnv();

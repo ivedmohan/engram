@@ -180,10 +180,34 @@
     `smoke-test` graph and a second run's assertions (expects exactly 2 active memories) would fail.
     Added a `graph.delete()` cleanup at the start of the script.
 
+- **2026-10-17 — T7 complete: web UI built AND visually verified in a real browser against live data,
+  not just type-checked.**
+  - Built `src/web/index.html`: project picker, search/recall box, Cytoscape.js graph view, memory
+    detail panel, timeline — single file, no build step, served by the daemon's new `serveStatic`
+    middleware in `daemon/server.ts`.
+  - **Real bug found and fixed:** `@hono/node-server`'s `serveStatic({root})` resolves the root path
+    relative to `process.cwd()` eagerly (an `existsSync` check runs the moment `serveStatic()` is
+    called, not per-request) — but the daemon gets auto-started from arbitrary project directories via
+    hooks/MCP. Fixed with `process.chdir()` to the package's own directory, and specifically verified
+    the fix by starting the daemon from `/tmp` and confirming both the static page and `cwd`-scoped API
+    calls still worked.
+  - Used the `claude-in-chrome` browser tool to actually load the page, take screenshots, click nodes,
+    and type a search query — not just curl/type-check. This caught a real visual problem curl testing
+    never could: the originally-planned `cose` (force-directed) graph layout produced overlapping node
+    labels, and retuning its physics parameters three times just relocated the overlap rather than
+    fixing it. Switched to `breadthfirst` (deterministic, layered, built into Cytoscape core) since this
+    graph is naturally layered anyway (Tool → Session → Memory → Entity) — this eliminated the overlaps
+    entirely and is reproducible across reloads, which also matters for recording a consistent demo video.
+  - Confirmed end-to-end in the browser: clicking "Relayer uses Hono" loads its real `/explain` data
+    including the supersession chain; typing "what framework does the relayer use" into the search box
+    and pressing Enter correctly surfaces the same memory via `/recall`. Zero console errors on load.
+  - Only implemented/verified the dark palette (the demo's hero shot per T7.5) — a light-mode token set
+    exists in the CSS but hasn't been screenshot-checked.
+
 ## Next
 
 - T6.3 (Antigravity) stays demoted/skipped per its own note above.
-- T7: web UI (graph view, timeline, memory detail panel) — the demo video's hero shot.
+- T8: ship — README, demo video, deploy decision, BLOG.md, submit.
 - Decide with Ved whether to actually run `engram install claude-code` now (dogfooding, per CLAUDE.md
   §6) or hold off until closer to the demo — same open question as after T5, still unresolved.
 

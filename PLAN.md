@@ -396,12 +396,42 @@ engram/
 - [ ] T6.5 Optional rules snippet for clients without hooks (Cursor rules / GEMINI.md / AGENTS.md): "At the start of a task call `engram_recall`; when a decision is made, call `engram_remember`." `engram install` can offer to append it.
 - **Done when:** the §2 demo steps 3–4 work live with Cursor + Gemini CLI (swap "Gemini CLI (or Antigravity)" in §2 step 4 to just "Gemini CLI").
 
-### T7. Web UI (MUST) — target: Sun 18 Oct morning
-- [ ] T7.1 `src/web/index.html` served at `/`: project picker, search box, graph view, timeline.
-- [ ] T7.2 Graph view from `/graph`: colour nodes by label and edges by type; show superseded memories greyed out with the `SUPERSEDES` edge highlighted.
-- [ ] T7.3 Memory detail panel from `/explain/:id`: text, tool, session time, entities, and the supersession chain.
-- [ ] T7.4 Timeline grouped by tool (Claude Code / Cursor / Gemini …).
-- [ ] T7.5 Must look good in dark mode — this is the demo video's hero shot.
+### T7. Web UI (MUST) — ✅ done 2026-10-17, verified visually in a real browser against live data
+- [x] T7.1 `src/web/index.html` served at `/` — project picker (populated from `/projects`), search box
+  wired to `/recall`, graph view, timeline. Uses Cytoscape.js from a CDN (no build step, per the stack
+  decision) since this is served directly by the daemon, not an Artifact — no CSP restrictions apply.
+  **Real portability bug found and fixed:** `@hono/node-server`'s `serveStatic({root})` resolves `root`
+  relative to `process.cwd()` **eagerly at middleware-setup time** (checked with `existsSync` the
+  moment `serveStatic()` is called, not lazily per-request), but the daemon can be auto-started from
+  any project's directory via hooks/MCP (T3.3/T5.3's `ensureDaemonRunning`), not just this repo's root.
+  Fixed with an explicit `process.chdir()` to this package's own directory, placed BEFORE the static
+  middleware is registered (ESM import hoisting means this ordering is about statement execution order
+  in the file, not import resolution — verified by actually starting the daemon from `/tmp` and
+  confirming both the static file and `cwd`-based API calls still worked correctly).
+- [x] T7.2 Graph view from `/graph` — ✅ done and VISUALLY VERIFIED (via a real Chrome session, not just
+  "it compiles"): nodes colored by label (violet=active Memory, dashed amber=superseded Memory,
+  teal=Entity, blue=Project/Session/Tool), `SUPERSEDES` edge rendered thick and violet with a label.
+  **Layout finding:** started with `cose` (force-directed) per the original plan, but random initial
+  positions caused real node-label overlaps in testing, and retuning repulsion/spacing parameters
+  three times just moved the overlap to a different node pair each time rather than eliminating it.
+  Switched to `breadthfirst` (built into Cytoscape core, no extra plugin) since this graph is naturally
+  layered (Tool → Session → Memory → Entity) — deterministic, reproducible across reloads (important
+  for a demo video), and eliminated the overlaps entirely rather than reducing them.
+- [x] T7.3 Memory detail panel from `/explain/:id` — ✅ done and verified: clicking a Memory node (or a
+  timeline row, or a recall result) loads real provenance — kind/status/tool badges, timestamp, entity
+  chips, and the supersession chain ("Supersedes 'Relayer uses Express'") — via the actual `/explain`
+  endpoint, not mocked data.
+- [x] T7.4 Timeline grouped by tool — ✅ done, verified showing all 3 demo memories with correct
+  timestamps and tool attribution, clickable to load detail.
+- [x] T7.5 Dark mode — ✅ done and visually verified via screenshot (the page only implements the dark
+  palette for now, matching `prefers-color-scheme: dark`; a light-mode fallback exists via the same
+  `:root` tokens but hasn't been screenshot-checked — lower priority since T7.5 specifically calls out
+  dark mode as the hero shot).
+- **Not yet done:** recall query in the search box currently only jumps to the TOP result's detail
+  panel, not a full results list — acceptable for the demo (which has one clear best answer) but would
+  need a proper results list for a project with many plausible matches. Also not done: a visible loading
+  state while `/graph`/`/timeline` fetch (brief flash of empty state on slow networks) — fine for
+  localhost, would matter for the FalkorDB-Cloud-backed read-only deploy option in T8.3 if that's chosen.
 
 ### T8. Ship (MUST) — Sun 18 Oct, finish by ~9 PM IST
 - [ ] T8.1 README: problem, 30-second GIF, the "why a graph" section (supersession, provenance, graph expansion, multigraph isolation), quick start (`docker compose up -d && npx engram up && npx engram install claude-code`), architecture diagram, privacy section, and the hackathon track.

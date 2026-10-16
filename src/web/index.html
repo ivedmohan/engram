@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Engram</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F4FA; --surface:#FFFFFF; --surface-2:#EEECF6; --border:#E0DEEB;
+    --text:#1B1B24; --text-muted:#65636F;
+    --accent:#6552E0; --accent-soft:#ECE9FC;
+    --warn:#9C6B35; --warn-soft:#F3E8DA;
+    --entity:#1F8F72; --entity-soft:#E1F4EE;
+    --structural:#2F6FD1; --structural-soft:#E6EEFC;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0D0E14; --surface:#15161F; --surface-2:#1C1E2A; --border:#272935;
+      --text:#E9E9F2; --text-muted:#9393A6;
+      --accent:#8C7CFF; --accent-soft:#241F3D;
+      --warn:#D79A5C; --warn-soft:#332519;
+      --entity:#4FD1A5; --entity-soft:#15332A;
+      --structural:#6FA8F5; --structural-soft:#16243A;
+    }
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    display:flex; flex-direction:column;
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  header{
+    display:flex; align-items:center; gap:14px; padding:12px 18px;
+    border-bottom:1px solid var(--border); background:var(--surface-2); flex-wrap:wrap; flex-shrink:0;
+  }
+  .brand{ font-family:'Fraunces'; font-weight:700; font-size:1.1rem; display:flex; align-items:center; gap:8px; }
+  .brand .mark{
+    width:24px; height:24px; border-radius:6px; background:linear-gradient(155deg,var(--accent),var(--structural));
+    display:grid; place-items:center; color:#fff; font-weight:900; font-size:13px; font-family:'Fraunces';
+  }
+  select, input, button{
+    font-family:'IBM Plex Mono'; font-size:12.5px; background:var(--surface); color:var(--text);
+    border:1px solid var(--border); border-radius:8px; padding:7px 10px;
+  }
+  select{ min-width:200px; }
+  input{ flex:1; min-width:180px; }
+  button{ cursor:pointer; }
+  button:hover{ background:var(--surface-2); }
+  .live-dot{ display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono'; font-size:11px; color:var(--text-muted); margin-left:auto; white-space:nowrap; }
+  .live-dot i{ width:6px; height:6px; border-radius:50%; background:var(--entity); display:inline-block; }
+  .live-dot.down i{ background:var(--warn); }
+
+  main{ flex:1; display:grid; grid-template-columns:1.6fr 1fr; min-height:0; }
+  @media (max-width:860px){ main{ grid-template-columns:1fr; grid-auto-rows:min-content; } }
+
+  .graph-pane{ position:relative; border-right:1px solid var(--border); min-height:320px; }
+  #cy{ width:100%; height:100%; }
+  .graph-empty{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--text-muted); font-size:13px; text-align:center; padding:20px; pointer-events:none;
+  }
+  .legend{
+    position:absolute; bottom:12px; left:12px; display:flex; gap:10px; flex-wrap:wrap; max-width:calc(100% - 24px);
+    background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px;
+    font-family:'IBM Plex Mono'; font-size:10px; color:var(--text-muted);
+  }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .legend .sw{ width:8px; height:8px; border-radius:3px; flex-shrink:0; }
+
+  .side-pane{ display:flex; flex-direction:column; overflow-y:auto; }
+  .panel{ padding:16px 18px; border-bottom:1px solid var(--border); }
+  .panel-label{ font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted); }
+
+  .badge-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .badge{ font-family:'IBM Plex Mono'; font-size:10.5px; padding:3px 8px; border-radius:100px; }
+  .badge.decision{ background:var(--accent-soft); color:var(--accent); }
+  .badge.preference{ background:var(--structural-soft); color:var(--structural); }
+  .badge.fact, .badge.task, .badge.context{ background:var(--surface-2); color:var(--text-muted); }
+  .badge.active{ background:var(--entity-soft); color:var(--entity); }
+  .badge.superseded, .badge.forgotten{ background:var(--warn-soft); color:var(--warn); }
+  .badge.tool{ background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border); }
+
+  #detail-title{ font-family:'Fraunces'; font-weight:700; font-size:1.15rem; margin-top:10px; line-height:1.3; }
+  #detail-time{ font-family:'IBM Plex Mono'; font-size:11px; color:var(--text-muted); display:block; margin-top:4px; }
+  .entity-chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+  .entity-chip{ font-family:'IBM Plex Mono'; font-size:10.5px; background:var(--entity-soft); color:var(--entity); padding:3px 9px; border-radius:100px; }
+  #detail-chain{
+    margin-top:12px; padding:10px 12px; background:var(--surface-2); border-radius:10px;
+    font-size:12.5px; color:var(--text-muted); line-height:1.5; border-left:2px solid var(--border);
+  }
+  #detail-chain.has-chain{ border-left-color:var(--warn); }
+  #detail-empty{ color:var(--text-muted); font-size:12.5px; margin-top:10px; }
+
+  .timeline-list{ display:flex; flex-direction:column; margin-top:10px; }
+  .t-row{ display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--border); cursor:pointer; }
+  .t-row:first-child{ border-top:none; }
+  .t-row:hover{ background:var(--surface-2); margin-inline:-18px; padding-inline:18px; border-radius:6px; }
+  .t-row .dot{ width:7px; height:7px; border-radius:50%; margin-top:5px; flex-shrink:0; background:var(--accent); }
+  .t-row .time{ font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--text-muted); white-space:nowrap; min-width:70px; }
+  .t-row .tool{ font-family:'IBM Plex Mono'; font-size:10px; color:var(--text-muted); text-transform:uppercase; }
+  .t-row .txt{ font-size:12.5px; }
+  footer{ padding:8px 18px; border-top:1px solid var(--border); font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--text-muted); flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><div class="mark">E</div>Engram</div>
+  <select id="project-picker"><option>Loading projects…</option></select>
+  <input id="search" type="text" placeholder="Search memories… (press Enter)" />
+  <button id="search-btn">Recall</button>
+  <span class="live-dot" id="live-dot"><i></i><span id="live-text">connecting…</span></span>
+</header>
+
+<main>
+  <div class="graph-pane">
+    <div id="cy"></div>
+    <div class="graph-empty" id="graph-empty">No memories yet for this project.</div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--structural-soft);border:1px solid var(--structural);"></span>Project/Session</span>
+      <span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent);"></span>Memory · active</span>
+      <span><span class="sw" style="background:var(--surface);border:1.5px dashed var(--warn);"></span>Memory · superseded</span>
+      <span><span class="sw" style="background:var(--entity-soft);border:1px solid var(--entity);"></span>Entity</span>
+    </div>
+  </div>
+
+  <div class="side-pane">
+    <div class="panel" id="detail-panel">
+      <span class="panel-label">Memory detail</span>
+      <div id="detail-empty">Click a memory node in the graph, or a recall/timeline result, to see its full provenance.</div>
+      <div id="detail-content" style="display:none;">
+        <div class="badge-row" id="detail-badges"></div>
+        <h3 id="detail-title"></h3>
+        <span id="detail-time" class="mono"></span>
+        <div class="entity-chips" id="detail-entities"></div>
+        <div id="detail-chain"></div>
+      </div>
+    </div>
+    <div class="panel" style="flex:1;">
+      <span class="panel-label">Timeline — all tools</span>
+      <div class="timeline-list" id="timeline-list"></div>
+    </div>
+  </div>
+</main>
+
+<footer id="status-footer">Engram local web UI</footer>
+
+<script>
+const API = '';
+let currentCwd = null;
+let cy = null;
+
+async function api(path) {
+  const res = await fetch(API + path);
+  if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+  return res.json();
+}
+
+function kindBadge(kind) { return `<span class="badge ${kind}">${kind}</span>`; }
+function statusBadge(status) { return `<span class="badge ${status}">${status}</span>`; }
+function toolBadge(tool) { return tool ? `<span class="badge tool">${tool}</span>` : ''; }
+
+function renderDetail(explained) {
+  document.getElementById('detail-empty').style.display = 'none';
+  const content = document.getElementById('detail-content');
+  content.style.display = 'block';
+
+  const m = explained.memory || {};
+  document.getElementById('detail-badges').innerHTML =
+    kindBadge(m.kind || 'fact') + statusBadge(m.status || 'active') + toolBadge(explained.tool);
+  document.getElementById('detail-title').textContent = m.text || '(no text)';
+  const when = m.createdAt ? new Date(m.createdAt).toLocaleString() : '';
+  document.getElementById('detail-time').textContent = when;
+  document.getElementById('detail-entities').innerHTML = (explained.entities || [])
+    .map((e) => `<span class="entity-chip">${e.display || e.name}</span>`).join('');
+
+  const chain = document.getElementById('detail-chain');
+  if (explained.supersedes) {
+    chain.classList.add('has-chain');
+    chain.innerHTML = `<strong>Supersedes</strong> "${explained.supersedes.text}"`;
+  } else {
+    chain.classList.remove('has-chain');
+    chain.innerHTML = 'No supersession — this is not known to replace an earlier memory.';
+  }
+}
+
+async function loadDetail(memoryId, scope) {
+  try {
+    const explained = await api(`/explain/${encodeURIComponent(memoryId)}?cwd=${encodeURIComponent(currentCwd)}&scope=${scope || 'project'}`);
+    renderDetail(explained);
+  } catch (err) {
+    console.error('explain failed', err);
+  }
+}
+
+function renderTimeline(events) {
+  const el = document.getElementById('timeline-list');
+  if (!events.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:12.5px;">No activity yet.</div>';
+    return;
+  }
+  el.innerHTML = events.map((e) => {
+    const m = e.memory || {};
+    const time = m.createdAt ? new Date(m.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    return `<div class="t-row" data-id="${m.id}">
+      <span class="dot" style="background:${m.status === 'superseded' ? 'var(--warn)' : 'var(--accent)'}"></span>
+      <span class="time mono">${time}</span>
+      <div><div class="tool">${e.tool || ''}</div><div class="txt">${m.text || ''}</div></div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.t-row').forEach((row) => {
+    row.addEventListener('click', () => loadDetail(row.dataset.id, 'project'));
+  });
+}
+
+function nodeColorByLabel(labels) {
+  if (labels.includes('Memory')) return null; // handled per-status below
+  if (labels.includes('Entity')) return { bg: 'var(--entity-soft)', border: 'var(--entity)' };
+  return { bg: 'var(--structural-soft)', border: 'var(--structural)' }; // Project/Session/Tool
+}
+
+function buildGraphElements(rows) {
+  const nodes = new Map();
+  const edges = [];
+
+  function addNode(n) {
+    if (!n || nodes.has(n.id)) return;
+    const labels = n.labels || [];
+    const props = n.properties || {};
+    let label = props.text || props.name || props.display || props.id || labels[0] || '?';
+    if (label.length > 28) label = label.slice(0, 26) + '…';
+    nodes.set(n.id, {
+      data: { id: 'n' + n.id, realId: props.id, label, labels, status: props.status },
+    });
+  }
+
+  for (const row of rows) {
+    addNode(row.n);
+    addNode(row.m);
+    if (row.r) {
+      edges.push({
+        data: {
+          id: 'e' + row.r.id,
+          source: 'n' + row.r.sourceId,
+          target: 'n' + row.r.destinationId,
+          type: row.r.relationshipType,
+        },
+      });
+    }
+  }
+
+  return { nodes: Array.from(nodes.values()), edges };
+}
+
+function renderGraph(rows) {
+  const { nodes, edges } = buildGraphElements(rows);
+  document.getElementById('graph-empty').style.display = nodes.length === 0 ? 'flex' : 'none';
+
+  if (cy) cy.destroy();
+  cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: { nodes, edges },
+    style: [
+      {
+        selector: 'node',
+        style: {
+          'label': 'data(label)',
+          'font-size': 9,
+          'font-family': 'IBM Plex Mono, monospace',
+          'color': getComputedStyle(document.body).getPropertyValue('--text'),
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'text-wrap': 'wrap',
+          'text-max-width': '90px',
+          'width': 90,
+          'height': 36,
+          'shape': 'round-rectangle',
+          'border-width': 1.4,
+          'background-color': getComputedStyle(document.body).getPropertyValue('--surface'),
+          'border-color': getComputedStyle(document.body).getPropertyValue('--border'),
+        },
+      },
+      {
+        selector: 'node[labels *= "Entity"]',
+        style: {
+          'background-color': getComputedStyle(document.body).getPropertyValue('--entity-soft'),
+          'border-color': getComputedStyle(document.body).getPropertyValue('--entity'),
+          shape: 'round-rectangle',
+        },
+      },
+      {
+        selector: 'node[labels *= "Project"], node[labels *= "Session"], node[labels *= "Tool"]',
+        style: {
+          'background-color': getComputedStyle(document.body).getPropertyValue('--structural-soft'),
+          'border-color': getComputedStyle(document.body).getPropertyValue('--structural'),
+        },
+      },
+      {
+        selector: 'node[labels *= "Memory"][status = "active"]',
+        style: {
+          'background-color': getComputedStyle(document.body).getPropertyValue('--accent-soft'),
+          'border-color': getComputedStyle(document.body).getPropertyValue('--accent'),
+          'border-width': 1.6,
+        },
+      },
+      {
+        selector: 'node[labels *= "Memory"][status = "superseded"]',
+        style: {
+          'border-color': getComputedStyle(document.body).getPropertyValue('--warn'),
+          'border-style': 'dashed',
+        },
+      },
+      {
+        selector: 'edge',
+        style: {
+          width: 1.2,
+          'line-color': getComputedStyle(document.body).getPropertyValue('--border'),
+          'target-arrow-color': getComputedStyle(document.body).getPropertyValue('--border'),
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'font-size': 8,
+          'font-family': 'IBM Plex Mono, monospace',
+          color: getComputedStyle(document.body).getPropertyValue('--text-muted'),
+        },
+      },
+      {
+        selector: 'edge[type = "SUPERSEDES"]',
+        style: {
+          width: 2.4,
+          'line-color': getComputedStyle(document.body).getPropertyValue('--accent'),
+          'target-arrow-color': getComputedStyle(document.body).getPropertyValue('--accent'),
+          label: 'supersedes',
+        },
+      },
+      {
+        selector: 'edge[type = "RELATED_TO"]',
+        style: { 'line-style': 'dashed', width: 1 },
+      },
+    ],
+    // breadthfirst, not cose: this graph is naturally layered (Tool -> Session -> Memory -> Entity),
+    // and a deterministic layout means the same data renders the same way every time — important for
+    // a reproducible demo video, unlike cose's randomized initial positions which can overlap
+    // differently on every reload.
+    layout: { name: 'breadthfirst', directed: true, padding: 40, spacingFactor: 1.6, animate: false },
+  });
+
+  cy.on('tap', 'node', (evt) => {
+    const data = evt.target.data();
+    if (data.labels && data.labels.includes('Memory') && data.realId) {
+      loadDetail(data.realId, 'project');
+    }
+  });
+}
+
+async function loadProject(cwd) {
+  currentCwd = cwd;
+  try {
+    const [graphData, timelineData] = await Promise.all([
+      api(`/graph?cwd=${encodeURIComponent(cwd)}`),
+      api(`/timeline?cwd=${encodeURIComponent(cwd)}`),
+    ]);
+    renderGraph(graphData.rows || []);
+    renderTimeline(timelineData.events || []);
+    document.getElementById('status-footer').textContent = `Project: ${cwd} · graph: ${graphData.projectSlug}`;
+  } catch (err) {
+    console.error('loadProject failed', err);
+    document.getElementById('status-footer').textContent = `Failed to load ${cwd}: ${err.message}`;
+  }
+}
+
+async function loadProjects() {
+  const picker = document.getElementById('project-picker');
+  try {
+    const data = await api('/projects');
+    const projects = data.projects || [];
+    if (projects.length === 0) {
+      picker.innerHTML = '<option>No projects yet</option>';
+      return;
+    }
+    picker.innerHTML = projects.map((p) => `<option value="${p.root || ''}">${p.name || p.slug}</option>`).join('');
+    picker.addEventListener('change', () => loadProject(picker.value));
+    loadProject(picker.value);
+  } catch (err) {
+    picker.innerHTML = '<option>Failed to load projects</option>';
+  }
+}
+
+async function runSearch() {
+  const query = document.getElementById('search').value.trim();
+  if (!query || !currentCwd) return;
+  try {
+    const res = await fetch('/recall', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query, cwd: currentCwd }),
+    });
+    const data = await res.json();
+    if (data.results && data.results[0]) {
+      loadDetail(data.results[0].id, 'project');
+    }
+  } catch (err) {
+    console.error('search failed', err);
+  }
+}
+
+document.getElementById('search-btn').addEventListener('click', runSearch);
+document.getElementById('search').addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(); });
+
+async function checkHealth() {
+  const dot = document.getElementById('live-dot');
+  const text = document.getElementById('live-text');
+  try {
+    const health = await api('/health');
+    dot.classList.toggle('down', !health.ok);
+    text.textContent = health.ok ? 'daemon connected' : 'daemon error';
+  } catch {
+    dot.classList.add('down');
+    text.textContent = 'daemon unreachable';
+  }
+}
+
+checkHealth();
+loadProjects();
+setInterval(checkHealth, 15000);
+</script>
+</body>
+</html>
