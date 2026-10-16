@@ -178,20 +178,41 @@ engram/
 ## 7. Tasks
 
 ### T0. Setup (MUST) — target: Fri 16 Oct evening
-- [ ] T0.1 `git init`, `package.json` (type module, bin `engram` → `dist/cli.js`), `tsconfig.json`, `.gitignore`, `.env.example`.
-- [ ] T0.2 `docker-compose.yml` with `falkordb/falkordb:latest`, ports 6379 and 3000, and a named volume for persistence.
-  RESEARCH: docs.falkordb.com/operations/docker for the data volume path.
-- [ ] T0.3 Install deps: `falkordb`, `@modelcontextprotocol/sdk`, `zod`, `hono`, `@hono/node-server`, `ulid`; dev: `typescript`, `tsx`, `@types/node`.
-- [ ] T0.4 Create `PROGRESS.md` with sections: Done, Next, Open questions, Gotchas.
-- **Done when:** `docker compose up -d` works and a 5-line script connects and runs `RETURN 1`.
+- [x] T0.1 `git init`, `package.json` (type module, bin `engram` → `dist/cli.js`), `tsconfig.json`, `.gitignore`, `.env.example`. Pushed to github.com/ivedmohan/engram.
+- [x] T0.2 `docker-compose.yml` with `falkordb/falkordb:latest`, ports 6379 and 3000, and a named volume for persistence. Confirmed running (FalkorDB 4.22.1).
+- [x] T0.3 Install deps: `falkordb`, `@modelcontextprotocol/sdk`, `zod`, `hono`, `@hono/node-server`, `ulid`; dev: `typescript`, `tsx`, `@types/node`.
+- [x] T0.4 Create `PROGRESS.md` with sections: Done, Next, Open questions, Gotchas.
+- **Done when:** `docker compose up -d` works and a 5-line script connects and runs `RETURN 1`. ✅ 2026-10-16.
 
-### T1. Graph layer (MUST)
-- [ ] T1.1 `graph/client.ts`: connect once, `getGraph(slug)` cache. VERIFIED: `FalkorDB.connect({username, password, socket:{host,port}})`, then `db.selectGraph('name')` (auto-creates the graph if missing — multigraph confirmed, no extra setup per project graph). Query: `graph.query(cypher, {params:{...}})`.
-- [ ] T1.2 `project.ts`: find the git root (walk up for `.git`, or `git rev-parse --show-toplevel`), slugify, hash, and read `git remote get-url origin` if present.
-- [ ] T1.3 `graph/schema.ts`: `ensureIndexes()`, idempotent, called on first use of each graph. Use the DDL index forms from §3.4 (full-text via `CREATE FULLTEXT INDEX`, not the procedure form).
-- [ ] T1.4 `graph/queries.ts`: upsertProject, upsertTool, upsertSession, createMemory (+ABOUT edges), supersede, contradict, forget, vectorSearch, fulltextSearch, entityExpand, timeline, explain, graphDump.
+### T1. Graph layer (MUST) — ✅ done 2026-10-16, `scripts/smoke.ts` passing against live FalkorDB
+- [x] T1.1 `graph/client.ts`: connect once, `getGraph(slug)` cache.
+  **Correction found while building:** `FalkorDB` and `Graph` are **named exports** from the `falkordb`
+  package (`import { FalkorDB, type Graph } from 'falkordb'`), NOT a default export — the package's own
+  `.d.ts` re-exports the class under a named binding even though the submodule itself uses `export
+  default`. A default import silently binds the whole CJS module object instead and fails at runtime
+  with `FalkorDB.connect is not a function`. `FalkorDB.connect({username, password, socket:{host,port}})`,
+  then `db.selectGraph('name')` (auto-creates the graph if missing). Query: `graph.query(cypher,
+  {params:{...}})`.
+- [x] T1.2 `project.ts`: find the git root, slugify + hash, read `git remote get-url origin` if present. Verified both inside a repo and in a non-repo cwd.
+- [x] T1.3 `graph/schema.ts`: `ensureIndexes()`, idempotent.
+  **Even better than planned:** the client ships typed helper methods —
+  `createNodeRangeIndex(label, ...props)`, `createNodeFulltextIndex(label, ...props)`,
+  `createNodeVectorIndex(label, dim, similarityFunction, ...props)` — so no hand-written DDL strings are
+  needed at all; they generate the exact DDL from §3.4 internally. Default `similarityFunction` is
+  `'euclidean'` — must pass `'cosine'` explicitly.
+- [x] T1.4 `graph/queries.ts`: upsertProject, upsertTool+upsertSession (combined), createMemory (+ABOUT
+  edges), supersede, contradict, forgetMemory, findMemoryByHash, listActiveMemories, vectorSearch,
+  fulltextSearch, entityExpand, timeline, explainMemory, graphDump.
+  **Critical runtime gotcha found (not documented anywhere, found by debugging a silent failure):**
+  FalkorDB result rows are **objects keyed by RETURN alias**, e.g. `RETURN m, score` comes back as
+  `{ m: {...}, score: ... }` — NOT a positional array/tuple `[m, score]`. Code written assuming
+  positional tuples runs with no error but silently returns nothing useful. Always alias unaliased
+  expressions (`t.name AS tool`) and destructure by name.
+  Also confirmed: a query whose leading `MATCH` finds nothing returns zero rows with **no error** — don't
+  assume a Cypher call "succeeded" just because it didn't throw; check `result.data.length` when a write
+  depends on a preceding match (e.g. `createMemory`'s `MATCH (s:Session {id: $sessionId})`).
   Remember: wrap every embedding write in `vecf32($vec)` (see §3.4 gotcha), not just in vectorSearch.
-- **Done when:** `scripts/smoke.ts` creates a project, 3 memories, one supersession, and reads them all back.
+- **Done when:** `scripts/smoke.ts` creates a project, 3 memories, one supersession, and reads them all back. ✅ — also exercises `explainMemory`'s full supersession chain.
 
 ### T2. Daemon (MUST)
 - [ ] T2.1 `config.ts`: `~/.engram/config.json` (port, provider, models, embedding dim), env overrides.

@@ -1,0 +1,29 @@
+{
+  "name": "engram",
+  "version": "0.1.0",
+  "description": "Local-first, graph-based shared memory for every AI tool on your machine.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "engram": "dist/cli.js"
+  },
+  "scripts": {
+    "dev:daemon": "tsx src/daemon/server.ts",
+    "dev:mcp": "tsx src/mcp/server.ts",
+    "build": "tsc",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "falkordb": "^6.2.7",
+    "hono": "^4.6.14",
+    "ulid": "^2.3.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
