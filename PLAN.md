@@ -432,10 +432,17 @@ engram/
   endpoint, not mocked data.
 - [x] T7.4 Timeline grouped by tool — ✅ done, verified showing all 3 demo memories with correct
   timestamps and tool attribution, clickable to load detail.
-- [x] T7.5 Dark mode — ✅ done and visually verified via screenshot (the page only implements the dark
-  palette for now, matching `prefers-color-scheme: dark`; a light-mode fallback exists via the same
-  `:root` tokens but hasn't been screenshot-checked — lower priority since T7.5 specifically calls out
-  dark mode as the hero shot).
+- [x] T7.5 Dark mode — **superseded by a deliberate later decision, 2026-10-17.** Originally built and
+  verified dark-only, per this task's own "hero shot" framing. Ved then asked for the web UI to be
+  restyled using Mistral AI's actual brand system (fetched via `npx getdesign add mistral.ai` into
+  `DESIGN.md`) — which documents no dark-mode palette at all ("Known Gaps") and explicitly instructs
+  "don't introduce additional accent colors beyond the orange/yellow/cream sunset palette." Given an
+  explicit instruction from Ved to restyle the real UI (not just a separate showcase page) with this
+  system, the UI is now **light-only by design**, matching the brand book exactly rather than
+  maintaining a dark mode the brand itself doesn't define. Re-verified visually after the restyle:
+  graph view, badges (orange reserved for "active" status only, exactly per the brand's own "reserve
+  primary orange for primary CTAs and active states only" guidance), detail panel, and supersession
+  chain all render correctly in the new palette.
 - **Not yet done:** recall query in the search box currently only jumps to the TOP result's detail
   panel, not a full results list — acceptable for the demo (which has one clear best answer) but would
   need a proper results list for a project with many plausible matches. Also not done: a visible loading

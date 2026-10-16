@@ -245,8 +245,37 @@
   during the build (keyed-not-positional query rows, RediSearch's implicit AND on full-text queries,
   Kimi K2 documented-but-unavailable on the key in use).
 
+- **2026-10-17 — web UI restyled with Mistral AI's actual brand system, at Ved's explicit request.**
+  - Ved asked to apply `npx getdesign@latest add mistral.ai`. Verified `getdesign` first (npm registry:
+    real, 5-day-old, MIT, zero dependencies, "CLI for installing DESIGN.md templates into projects") and
+    its homepage before running it, since running an unfamiliar package via `npx` executes its code —
+    confirmed it only writes a `DESIGN.md` reference file, no other side effects.
+  - The resulting `DESIGN.md` is Mistral's real marketing-site brand book: warm cream/orange "sunset"
+    palette, PP Editorial Old (near-serif display) + Inter (UI) + JetBrains Mono (code), 8px button /
+    12px card radii, explicitly **no documented dark mode** and explicit guidance against adding extra
+    accent colors beyond orange/yellow/cream.
+  - Asked Ved to disambiguate two real decisions before building: what "a link to show" actually meant
+    (static showcase vs. real deployment — he wants an SDK-doc-style page with an install guide,
+    building now), and whether Mistral's style should apply only to a showcase page or to the real web
+    UI too (he said both/the real UI too) — this explicitly overrides T7.5's original dark-mode-only
+    framing, which is now documented as superseded rather than silently dropped.
+  - Restyled `src/web/index.html` end to end: swapped all CSS custom properties to Mistral's tokens,
+    IBM Plex Sans/Mono → Inter/JetBrains Mono, Fraunces → Newsreader (closer to "PP Editorial Old"'s
+    classical character), removed the `prefers-color-scheme: dark` block entirely (no source to draw a
+    dark palette from), remapped graph-node/badge colors to stay within the brand's stated palette —
+    orange reserved exclusively for "active" status (directly matching the brand's own "reserve primary
+    orange for primary CTAs and active states only" rule), entities/structural nodes distinguished by
+    cream/neutral fill and dashed-vs-solid borders rather than inventing new hues. Found and removed one
+    piece of dead code (`nodeColorByLabel`, defined but never called) while doing the sweep.
+  - Re-verified visually via the `claude-in-chrome` browser tool (not just that it compiles): graph
+    view, the `SUPERSEDES` edge (now orange), badges, and the detail panel with its supersession chain
+    all render correctly in the new palette. Replaced `docs/web-ui.jpg` with a fresh screenshot.
+
 ## Next
 
+- Still pending: the "SDK-style showcase page with an installation guide" Ved actually asked for as
+  "a link to show" — building next as a Claude Artifact, using the same Mistral design tokens for
+  visual consistency with the now-restyled real UI.
 - **Every autonomously-doable item in T0–T8 is now done.** What's left all genuinely needs Ved:
   - T8.2 (demo video) — recording/narrating isn't something I can do.
   - T8.3 (deploy decision) — a judgment call, possibly needs a FalkorDB Cloud account.
