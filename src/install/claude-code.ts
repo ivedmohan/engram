@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { resolveMcpCommand } from './resolve.js';
 
 export type InstallScope = 'user' | 'project';
 
@@ -72,11 +72,6 @@ export function installClaudeCodeHooks(scope: InstallScope, projectRoot: string)
   return { path: target, backedUp };
 }
 
-function resolveMcpServerPath(): string {
-  const builtPath = fileURLToPath(new URL('../mcp/server.js', import.meta.url));
-  return existsSync(builtPath) ? builtPath : fileURLToPath(new URL('../mcp/server.ts', import.meta.url));
-}
-
 export interface InstallMcpResult {
   ok: boolean;
   output: string;
@@ -84,13 +79,10 @@ export interface InstallMcpResult {
 
 /** Shells out to the real `claude mcp add` CLI — confirmed command shape, not guessed. */
 export function installClaudeCodeMcp(scope: InstallScope): InstallMcpResult {
-  const mcpServerPath = resolveMcpServerPath();
-  const usesTsx = mcpServerPath.endsWith('.ts');
   // Engram's "project" scope maps to `claude mcp add`'s "local" (personal, not shared via .mcp.json)
   // for the same reason as the hooks file choice above: don't impose Engram on every teammate.
   const claudeScope = scope === 'user' ? 'user' : 'local';
-  const command = usesTsx ? 'npx' : process.execPath;
-  const args = usesTsx ? ['tsx', mcpServerPath] : [mcpServerPath];
+  const { command, args } = resolveMcpCommand();
 
   try {
     const output = execFileSync('claude', ['mcp', 'add', '--scope', claudeScope, 'engram', '--', command, ...args], {

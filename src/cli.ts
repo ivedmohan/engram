@@ -60,9 +60,10 @@ switch (command) {
     break;
   }
   case 'install': {
+    const scopeArgIndex = process.argv.indexOf('--scope');
+    const scope = (scopeArgIndex >= 0 ? process.argv[scopeArgIndex + 1] : 'project') as 'user' | 'project';
+
     if (subArg === 'claude-code') {
-      const scopeArgIndex = process.argv.indexOf('--scope');
-      const scope = (scopeArgIndex >= 0 ? process.argv[scopeArgIndex + 1] : 'project') as 'user' | 'project';
       const { installClaudeCodeHooks, installClaudeCodeMcp } = await import('./install/claude-code.js');
 
       const mcpResult = installClaudeCodeMcp(scope);
@@ -71,8 +72,38 @@ switch (command) {
       const hooksResult = installClaudeCodeHooks(scope, process.cwd());
       console.log(`✅ Hooks merged into ${hooksResult.path}${hooksResult.backedUp ? ' (backed up original to .bak)' : ''}`);
       console.log('Restart Claude Code (or start a new session) for the hooks to take effect.');
+    } else if (subArg === 'cursor') {
+      const { installCursor } = await import('./install/cursor.js');
+      const result = installCursor(scope, process.cwd());
+      console.log(`✅ Registered engram MCP server in ${result.path}${result.backedUp ? ' (backed up original to .bak)' : ''}`);
+      if (process.argv.includes('--with-rules')) {
+        const { ensureRulesSnippet } = await import('./install/rules-snippet.js');
+        const path = await import('node:path');
+        const r = ensureRulesSnippet(path.join(process.cwd(), 'AGENTS.md'));
+        console.log(r.added ? '✅ Added Engram usage notes to AGENTS.md' : 'ℹ️  AGENTS.md already has Engram usage notes');
+      }
+      console.log('Restart Cursor for it to pick up the new MCP server.');
+    } else if (subArg === 'gemini-cli') {
+      const { installGeminiCli } = await import('./install/gemini-cli.js');
+      const result = installGeminiCli(scope, process.cwd());
+      console.log(`✅ Registered engram MCP server in ${result.path}${result.backedUp ? ' (backed up original to .bak)' : ''}`);
+      if (scope === 'project') {
+        console.log('Note: unlike Claude Code hooks, this file is not gitignored by convention — it will be shared with anyone who clones this repo.');
+      }
+      if (process.argv.includes('--with-rules')) {
+        const { ensureRulesSnippet } = await import('./install/rules-snippet.js');
+        const path = await import('node:path');
+        const r = ensureRulesSnippet(path.join(process.cwd(), 'GEMINI.md'));
+        console.log(r.added ? '✅ Added Engram usage notes to GEMINI.md' : 'ℹ️  GEMINI.md already has Engram usage notes');
+      }
+      console.log('Restart Gemini CLI for it to pick up the new MCP server.');
+    } else if (subArg === 'claude-desktop') {
+      const { installClaudeDesktop } = await import('./install/claude-desktop.js');
+      const result = installClaudeDesktop();
+      console.log(`✅ Registered engram MCP server in ${result.path}${result.backedUp ? ' (backed up original to .bak)' : ''}`);
+      console.log('Note: Claude Desktop has no per-project workspace, so this only reliably serves global-scope memories. Restart Claude Desktop for it to pick up the new MCP server.');
     } else {
-      console.log('Usage: engram install claude-code [--scope user|project]');
+      console.log('Usage: engram install <claude-code|cursor|gemini-cli|claude-desktop> [--scope user|project] [--with-rules]');
       process.exitCode = 1;
     }
     break;

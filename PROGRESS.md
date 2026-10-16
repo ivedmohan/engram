@@ -153,11 +153,39 @@
     Groq API calls) on every future Stop event in live sessions, including this one. That's a live
     behavior change worth flagging explicitly rather than silently activating mid-build.
 
+- **2026-10-16 — T6.1/T6.2/T6.4/T6.5 complete: Cursor, Gemini CLI, Claude Desktop installers + rules snippet.**
+  - Built shared `src/install/mcp-json.ts` (`mergeMcpServer`/`writeMcpConfig`, same backup-before-write
+    pattern as T5.4's hooks installer) and `src/install/resolve.ts` (shared command/args resolution,
+    also refactored into `install/claude-code.ts` to remove duplication).
+  - `src/install/cursor.ts`, `src/install/gemini-cli.ts`, `src/install/claude-desktop.ts`,
+    `src/install/rules-snippet.ts` — all wired into `engram install <client>` in `cli.ts`, with a new
+    opt-in `--with-rules` flag for appending the recall/remember nudge to `AGENTS.md`/`GEMINI.md`.
+  - 23/23 tests passing in `scripts/test-install.ts`. **Every test for `project` scope ran against a
+    fresh `mkdtemp` scratch directory — confirmed by directly inspecting it afterward that this
+    machine's real `~/.cursor/mcp.json` (which has 5 pre-existing real MCP servers: smoothsend,
+    agentcash, figma, n8n-mcp, chrome-devtools) was untouched.** `user`-scope paths (`~/.cursor/...`,
+    `~/.gemini/...`) were never exercised for the same reason T5.4 held back on the real Claude Code
+    settings — only the pure `mergeMcpServer` function and `project`-scope file writes were tested live.
+  - Found and documented a real gap rather than overclaiming: Claude Desktop's installer sets
+    `ENGRAM_TOOL=claude-desktop` but NOT `ENGRAM_CWD` (no per-project workspace there), and the MCP
+    server's current fallback (`process.cwd()`) means a bare "remember X" from Desktop doesn't actually
+    land in `engram_global` the way the pitch implies — would need a small `mcp/server.ts` change
+    (default scope to "global" when `ENGRAM_CWD` was never set) that wasn't made since Desktop is
+    lower-priority than Claude Code/Cursor/Gemini CLI for the demo.
+  - T6.5 (rules snippet) turned out to be more load-bearing than its "optional/nice-to-have" framing in
+    PLAN.md suggested: Cursor and Gemini CLI have no hooks system, so without this nudge an agent there
+    has zero automatic trigger to ever call `engram_recall`.
+  - Fixed an unrelated pre-existing bug while re-running the full test suite: `scripts/smoke.ts` wasn't
+    idempotent — FalkorDB persists to a docker volume, so every prior run's memories stayed in the
+    `smoke-test` graph and a second run's assertions (expects exactly 2 active memories) would fail.
+    Added a `graph.delete()` cleanup at the start of the script.
+
 ## Next
 
-- T6: `engram install cursor` / `engram install gemini-cli` config writers.
+- T6.3 (Antigravity) stays demoted/skipped per its own note above.
+- T7: web UI (graph view, timeline, memory detail panel) — the demo video's hero shot.
 - Decide with Ved whether to actually run `engram install claude-code` now (dogfooding, per CLAUDE.md
-  §6) or hold off until closer to the demo.
+  §6) or hold off until closer to the demo — same open question as after T5, still unresolved.
 
 ## Open questions
 

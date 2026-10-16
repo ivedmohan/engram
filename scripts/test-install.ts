@@ -1,5 +1,9 @@
 import { mergeEngramHooks } from '../src/install/claude-code.js';
 import { installClaudeCodeHooks } from '../src/install/claude-code.js';
+import { mergeMcpServer } from '../src/install/mcp-json.js';
+import { installCursor } from '../src/install/cursor.js';
+import { installGeminiCli } from '../src/install/gemini-cli.js';
+import { ensureRulesSnippet } from '../src/install/rules-snippet.js';
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -56,6 +60,47 @@ const backup = JSON.parse(readFileSync(`${settingsFile}.bak`, 'utf8'));
 check('backup file matches original pre-install content', backup.hooks.Stop[0].hooks[0].command === 'pre-existing' && !backup.hooks.SessionStart);
 
 rmSync(scratchDir, { recursive: true, force: true });
+
+// 5. mergeMcpServer (shared by Cursor/Gemini CLI/Claude Desktop): preserves sibling server entries.
+const mcpMerged = mergeMcpServer(
+  { mcpServers: { 'some-other-server': { command: 'foo', args: [] } } },
+  'engram',
+  { command: 'node', args: ['/path/to/server.js'], env: { ENGRAM_TOOL: 'cursor' } },
+);
+check('preserves sibling MCP server entries', !!mcpMerged.mcpServers['some-other-server']);
+check('adds engram MCP entry', mcpMerged.mcpServers.engram.env.ENGRAM_TOOL === 'cursor');
+
+// 6. installCursor against a scratch project root (NEVER the real ~/.cursor).
+const cursorScratch = mkdtempSync(path.join(tmpdir(), 'engram-cursor-test-'));
+const cursorResult = installCursor('project', cursorScratch);
+check('installCursor writes to .cursor/mcp.json under project root', cursorResult.path === path.join(cursorScratch, '.cursor', 'mcp.json'));
+const cursorConfig = JSON.parse(readFileSync(cursorResult.path, 'utf8'));
+check('installCursor sets ENGRAM_TOOL=cursor', cursorConfig.mcpServers.engram.env.ENGRAM_TOOL === 'cursor');
+check('installCursor sets ENGRAM_CWD to project root', cursorConfig.mcpServers.engram.env.ENGRAM_CWD === cursorScratch);
+rmSync(cursorScratch, { recursive: true, force: true });
+
+// 7. installGeminiCli against a scratch project root (NEVER the real ~/.gemini).
+const geminiScratch = mkdtempSync(path.join(tmpdir(), 'engram-gemini-test-'));
+const geminiResult = installGeminiCli('project', geminiScratch);
+check('installGeminiCli writes to .gemini/settings.json under project root', geminiResult.path === path.join(geminiScratch, '.gemini', 'settings.json'));
+const geminiConfig = JSON.parse(readFileSync(geminiResult.path, 'utf8'));
+check('installGeminiCli sets ENGRAM_TOOL=gemini-cli', geminiConfig.mcpServers.engram.env.ENGRAM_TOOL === 'gemini-cli');
+check('installGeminiCli sets cwd field directly', geminiConfig.mcpServers.engram.cwd === geminiScratch);
+rmSync(geminiScratch, { recursive: true, force: true });
+
+// 8. ensureRulesSnippet: creates, is idempotent, and preserves existing content when appending.
+const rulesScratch = mkdtempSync(path.join(tmpdir(), 'engram-rules-test-'));
+const agentsFile = path.join(rulesScratch, 'AGENTS.md');
+const firstAdd = ensureRulesSnippet(agentsFile);
+check('creates AGENTS.md with the snippet', firstAdd.added === true);
+const secondAdd = ensureRulesSnippet(agentsFile);
+check('idempotent — no duplicate snippet on re-run', secondAdd.added === false);
+
+writeFileSync(agentsFile, '# My existing project notes\n\nSome content a human wrote.\n');
+const thirdAdd = ensureRulesSnippet(agentsFile);
+const finalContent = readFileSync(agentsFile, 'utf8');
+check('appends without clobbering existing content', thirdAdd.added === true && finalContent.includes('My existing project notes') && finalContent.includes('engram_recall'));
+rmSync(rulesScratch, { recursive: true, force: true });
 
 if (failures > 0) {
   console.error(`\n❌ ${failures} install test(s) failed`);

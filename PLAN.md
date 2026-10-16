@@ -367,11 +367,32 @@ engram/
   hooks file choice (`.claude/settings.local.json`, not the shared `.claude/settings.json`).
 - **Done when:** a real Claude Code session in a test repo produces memories with no manual action, and a new session starts with them in context. ✅ verified via simulated hook stdin (see T5.3) — not yet exercised via an ACTUAL live Claude Code session, since that requires running `engram install claude-code` for real (see T5.4 note).
 
-### T6. Other clients (MUST: Cursor + Gemini CLI; Claude Desktop nice-to-have; Antigravity demoted — see below)
-- [ ] T6.1 `engram install cursor`: VERIFIED — `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global; project overrides global for same server name). Shape: `{"mcpServers":{"name":{"command":"node","args":["..."],"env":{"ENGRAM_TOOL":"cursor","ENGRAM_CWD":"..."}}}}`. Env vars per-server confirmed supported. Rules: Cursor loads both `AGENTS.md` and `.cursor/rules/*.mdc` — either works for T6.5.
-- [ ] T6.2 `engram install gemini-cli`: VERIFIED — `~/.gemini/settings.json` (user) or `.gemini/settings.json` (project), merged across System/Workspace/User levels, under `mcpServers`. Shape includes `command`, `args`, `env`, **`cwd`**, `timeout`, `trust`. If `cwd` is omitted the server inherits the CLI's invocation cwd, so the `process.cwd()`-first design in T3.3 holds here too. Rules file is `GEMINI.md` (not `AGENTS.md`).
+### T6. Other clients (MUST: Cursor + Gemini CLI; Claude Desktop nice-to-have; Antigravity demoted — see below) — ✅ T6.1/T6.2/T6.4/T6.5 done 2026-10-16
+- [x] T6.1 `engram install cursor` (`src/install/cursor.ts`) — ✅ done, unit-tested against a scratch
+  project root (never the real `~/.cursor/mcp.json` — confirmed via inspection that the user's real,
+  pre-existing Cursor MCP config with 5 other servers was untouched). `.cursor/mcp.json` (project) or
+  `~/.cursor/mcp.json` (global). Since Cursor's config has no confirmed `cwd` field, the project root
+  is baked directly into `env.ENGRAM_CWD` at install time instead of relying on the client to launch
+  with the right working directory.
+- [x] T6.2 `engram install gemini-cli` (`src/install/gemini-cli.ts`) — ✅ done, unit-tested the same way
+  (scratch dir only). `~/.gemini/settings.json` (user) or `.gemini/settings.json` (project) — sets both
+  the confirmed `cwd` field AND `env.ENGRAM_CWD` for robustness. **Documented asymmetry:** unlike
+  Claude Code's `.local.json` convention, no gitignored variant is confirmed for Gemini CLI, so project
+  scope here really is shared with anyone who clones the repo — the CLI prints a note about this.
 - [ ] T6.3 Antigravity: **DEMOTED to stretch, do not plan the demo around it.** RESEARCH confirmed it's a real, current Google IDE with MCP support, but only UI-driven ("MCP Store") remote/cloud connectors (Workspace, BigQuery, AlloyDB) are documented — no public config file path or JSON shape for a custom local stdio server was found. Treat as unresolved; only attempt if time remains and you can test it directly.
-- [ ] T6.4 `engram install claude-desktop`: VERIFIED — `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, same `{"mcpServers":{"name":{"command":...,"args":[...],"env":{...}}}}` shape. **No `cwd`/workspace concept** — Desktop has no per-project workspace the way an IDE does, so install this as `engram_global`-scope only (personal preferences), not part of the repo-scoped demo flow. This matches its existing "nice-to-have" priority.
+- [x] T6.4 `engram install claude-desktop` (`src/install/claude-desktop.ts`) — ✅ done. No `--scope`
+  (Desktop has no per-project workspace). **Known, documented limitation:** without `ENGRAM_CWD`, the
+  MCP server falls back to `process.cwd()` rather than cleanly defaulting to global-only scope —
+  fixing that needs a small change to `mcp/server.ts`'s default-scope logic, not made since Desktop is
+  explicitly lower priority than Claude Code/Cursor/Gemini CLI.
+- [x] T6.5 Rules snippet (`src/install/rules-snippet.ts`, `ensureRulesSnippet`) — ✅ done, opt-in via a
+  `--with-rules` flag on `install cursor`/`install gemini-cli` (matches the plan's "can offer to
+  append it" — never forced). Appends (never overwrites) a short "call engram_recall at the start of a
+  task, call engram_remember on a decision" nudge to `AGENTS.md`/`GEMINI.md`, idempotent via an HTML
+  comment marker. **This turned out to matter more than "nice-to-have":** Cursor and Gemini CLI have no
+  hooks system — without this nudge, an agent there has no automatic trigger to ever call
+  `engram_recall` at all, unlike Claude Code where the SessionStart hook does it automatically.
+  Unit-tested: creates, is idempotent, and preserves a human's existing file content when appending.
 - [ ] T6.5 Optional rules snippet for clients without hooks (Cursor rules / GEMINI.md / AGENTS.md): "At the start of a task call `engram_recall`; when a decision is made, call `engram_remember`." `engram install` can offer to append it.
 - **Done when:** the §2 demo steps 3–4 work live with Cursor + Gemini CLI (swap "Gemini CLI (or Antigravity)" in §2 step 4 to just "Gemini CLI").
 
