@@ -460,7 +460,12 @@ engram/
   **Blocked on Ved** — recording/narrating a video isn't something that can be done autonomously.
 - [ ] T8.3 Deployment: since this is local-first, deploy a **read-only demo** of the web UI against FalkorDB Cloud with the seeded graph (app.falkordb.cloud), OR clearly document local setup and rely on the video. Decide by Sun noon.
   **Blocked on Ved** — needs a decision (and possibly a FalkorDB Cloud account) only he can make/provide.
-- [ ] T8.4 `BLOG.md` (side prize: best blog post): the daily pain, why vector memory isn't enough, the graph model, supersession, and lessons learned.
+- [x] T8.4 `BLOG.md` — ✅ done 2026-10-17. Grounded in the real build log (`PROGRESS.md`), not generic
+  copy: the daily multi-tool pain, why vector-only memory can't represent supersession, the three
+  places graph structure concretely helped (provenance-as-traversal, graph-expansion recall,
+  free multigraph isolation), and the three real bugs found while building (positional-vs-keyed query
+  rows, RediSearch's implicit AND on multi-word full-text queries, Kimi K2 being documented but not
+  actually available on the API key in use).
 - [ ] T8.5 Submit on WeMakeDevs **before 11:59 PM IST, 18 Oct**. Re-read the rules page first.
   **Blocked on Ved** — requires his actual hackathon account/submission.
 

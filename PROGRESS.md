@@ -239,15 +239,22 @@
     (`docs/web-ui.jpg`) and embedded it in the README instead of a placeholder GIF — genuine proof the
     system works, pending a proper recorded demo video (T8.2, which needs Ved).
 
+- **2026-10-17 — T8.4 (BLOG.md) done.** Grounded entirely in this file's real history rather than
+  generic hackathon copy: the daily multi-tool pain, why vector-only memory can't represent
+  supersession, the three places graph structure concretely helped, and the three real bugs found
+  during the build (keyed-not-positional query rows, RediSearch's implicit AND on full-text queries,
+  Kimi K2 documented-but-unavailable on the key in use).
+
 ## Next
 
-- T6.3 (Antigravity) stays demoted/skipped per its own note above.
-- **T8.2 (demo video), T8.3 (deploy decision), T8.5 (submit) are genuinely blocked on Ved** — none of
-  these can be done autonomously (recording/narrating a video, a hosting decision that may need a
-  FalkorDB Cloud account, and an actual hackathon-platform submission from his account).
-- T8.4 (`BLOG.md`) is the one remaining T8 item that doesn't need Ved — reasonable next step.
-- Decide with Ved whether to actually run `engram install claude-code` now (dogfooding, per CLAUDE.md
-  §6) or hold off until closer to the demo — same open question as after T5, still unresolved.
+- **Every autonomously-doable item in T0–T8 is now done.** What's left all genuinely needs Ved:
+  - T8.2 (demo video) — recording/narrating isn't something I can do.
+  - T8.3 (deploy decision) — a judgment call, possibly needs a FalkorDB Cloud account.
+  - T8.5 (submit) — requires his actual hackathon-platform account.
+  - Whether to run `engram install claude-code` for real now (dogfooding, per CLAUDE.md §6) or hold off
+    until closer to the demo — open since T5, still unresolved, his call.
+- T9 (stretch) is explicitly "only after all MUST tasks" — all MUST tasks (T0–T8.1/T8.4) that don't
+  require Ved are done, so T9 could start, but T8.2/T8.3/T8.5 still block an actual submission.
 
 ## Open questions
 
