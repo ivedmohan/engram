@@ -316,8 +316,8 @@ engram/
   calls after running the script fresh.
 - **Done when:** feeding the §2 conversation text to `/ingest` produces the right memories and a SUPERSEDES edge, and `/recall` for "relayer framework" returns Hono first with provenance. ✅ both verified live.
 
-### T5. Claude Code integration (MUST) — automatic capture
-- [ ] T5.1 VERIFIED (code.claude.com/docs/en/hooks): all five events exist exactly as assumed, plus a larger set
+### T5. Claude Code integration (MUST) — automatic capture — ✅ done 2026-10-16, verified via simulated hook invocations
+- [x] T5.1 VERIFIED (code.claude.com/docs/en/hooks): all five events exist exactly as assumed, plus a larger set
   (`PreToolUse`, `PostToolUse`, `SubagentStart/Stop`, `ConfigChange`, `WorktreeCreate/Remove`, …) not needed here.
   `settings.json` shape: `{"hooks": {"<EventName>": [{"matcher": "...", "hooks": [{"type": "command", "command": "...", "timeout": 600}]}]}}`.
   Stdin carries `session_id`, `cwd`, `hook_event_name`, `transcript_path`, `permission_mode`, and more.
@@ -328,14 +328,44 @@ engram/
   Context injection: `SessionStart` — plain stdout works. `UserPromptSubmit` — plain stdout only works if it
   does NOT parse as JSON, so use the explicit `{"hookSpecificOutput":{"hookEventName":"...","additionalContext":"..."}}`
   shape for reliability. Cap is 10,000 chars per field (well above the ~1,500 token budget planned).
-- [ ] T5.2 `transcripts/claude-code.ts`: parse the JSONL transcript into `{role, text, ts}`, dropping tool-call noise (keep short tool summaries if useful).
-- [ ] T5.3 `hooks/claude-code.ts` + CLI `engram hook <event>`:
-  - `SessionStart`: print `/context` markdown (≤ ~1,500 tokens).
-  - `Stop`: use `last_assistant_message` (not the transcript tail) for the latest turn; send new messages since the last offset to `/ingest`. Must be fast and must never block or fail the session (always exit 0, with a short timeout). Default hook timeout is 600s, but exit code 2 does block `Stop` — stick to exit 0 always.
-  - `SessionEnd` / `PreCompact`: final flush. **`SessionEnd` only gets a ~1.5s combined budget by default** (raisable to 60s via explicit `timeout`, but keep this hook's body trivial/fire-and-forget to the daemon regardless — don't wait on extraction synchronously). Exit code 2 can't block `SessionEnd` anyway (observational only).
-  - *STRETCH* `UserPromptSubmit`: recall against the prompt and inject the top 3 if score > threshold. Default timeout here is only 30s.
-- [ ] T5.4 `engram install claude-code [--scope user|project]`: VERIFIED — `claude mcp add --scope local|project|user <name> -- <command> [args...]` registers the MCP server (`local` = default/personal per-project in `~/.claude.json`, `project` = shared via `.mcp.json` in repo root, `user` = all projects via `~/.claude.json`). Still merge hooks into `settings.json` by hand (no CLI for that) without clobbering existing hooks; back up the file first.
-- **Done when:** a real Claude Code session in a test repo produces memories with no manual action, and a new session starts with them in context.
+- [x] T5.2 `transcripts/claude-code.ts` — ✅ done. **Schema confirmed by reading this very session's own
+  real transcript file directly** (ground truth, not docs — Claude Code doesn't publish this JSONL
+  schema): each line is `{type, message: {role, content}, timestamp, ...}`. `type:"user"` with a
+  STRING `content` is real human text; `type:"user"` with an ARRAY `content` is tool-result feedback
+  (drop). `type:"assistant"` content is always an array of blocks — `thinking` (drop), `tool_use`
+  (drop), `text` (keep). Everything else (`system`, `file-history-snapshot`, `mode`, ...) is harness
+  bookkeeping (drop). Tested against the real 1630-line transcript for this project: correctly
+  extracted 160 clean conversational messages.
+- [x] T5.3 `hooks/claude-code.ts` + CLI `engram hook <event>` — ✅ done, verified with simulated stdin
+  matching real Claude Code hook payloads (a fake transcript file in the confirmed schema + a seeded
+  existing memory): `SessionStart` printed the right `/context` markdown; `Stop` automatically produced
+  a `SUPERSEDE` + an `ADD` with **zero manual `/ingest` calls** — the actual automatic-capture pitch,
+  working end to end through the hook interface a real Claude Code session would use.
+  - `SessionStart`: prints `/context` markdown via plain stdout.
+  - `Stop`: parses the transcript from `Session`'s local offset file (`~/.engram/offsets/<id>.offset`,
+    not a graph property — avoids a network round-trip before sending), appends `last_assistant_message`
+    if the transcript parse didn't already capture it (handles the documented lag), POSTs to `/ingest`.
+    Every handler is wrapped so it can never throw past the CLI's own top-level catch; `cli.ts` always
+    sets `process.exitCode = 0` for the `hook` command regardless of what happened inside.
+  - `SessionEnd` / `PreCompact`: same flush, but `SessionEnd` skips `ensureDaemonRunning()` (would blow
+    the ~1.5s budget) and uses a 1000ms fetch timeout via `daemonFetch`'s new `timeoutMs` param.
+  - *STRETCH* `UserPromptSubmit`: not built — correctly deprioritized, see §8 cut order.
+  - Refactored the daemon-connection logic (`ensureDaemonRunning`/`daemonFetch`) out of `mcp/server.ts`
+    into a shared `src/daemon/rpc.ts` so hooks and the MCP server don't duplicate it; re-verified the
+    MCP server still works end to end after the refactor (same live-MCP-client test as T3).
+- [x] T5.4 `src/install/claude-code.ts` + `engram install claude-code [--scope user|project]` — ✅ done.
+  Hooks merge (`mergeEngramHooks`) is a pure function, unit-tested (12/12 passing in
+  `scripts/test-install.ts`) against synthetic "existing settings with an unrelated hook already
+  present" input — confirmed it never clobbers an existing hook on the same event, is idempotent on
+  re-install, and the file-writing wrapper backs up the original before overwriting. **Deliberately
+  NOT run against this repo's real `.claude/settings.local.json` or `~/.claude/settings.json` yet** —
+  doing so would start firing hooks (and real Groq API calls) on every future Stop event in live
+  sessions, including this one, which is a behavior change worth the user's explicit go-ahead rather
+  than something to flip on silently mid-build. MCP registration shells out to the real `claude mcp add`
+  (confirmed command shape from T3's research); Engram's "project" scope maps to `--scope local`
+  (personal, not the shared `.mcp.json`) for the same "don't impose this on teammates" reasoning as the
+  hooks file choice (`.claude/settings.local.json`, not the shared `.claude/settings.json`).
+- **Done when:** a real Claude Code session in a test repo produces memories with no manual action, and a new session starts with them in context. ✅ verified via simulated hook stdin (see T5.3) — not yet exercised via an ACTUAL live Claude Code session, since that requires running `engram install claude-code` for real (see T5.4 note).
 
 ### T6. Other clients (MUST: Cursor + Gemini CLI; Claude Desktop nice-to-have; Antigravity demoted — see below)
 - [ ] T6.1 `engram install cursor`: VERIFIED — `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global; project overrides global for same server name). Shape: `{"mcpServers":{"name":{"command":"node","args":["..."],"env":{"ENGRAM_TOOL":"cursor","ENGRAM_CWD":"..."}}}}`. Env vars per-server confirmed supported. Rules: Cursor loads both `AGENTS.md` and `.cursor/rules/*.mdc` — either works for T6.5.

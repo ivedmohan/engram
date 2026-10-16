@@ -2,10 +2,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { existsSync } from 'node:fs';
-import { loadConfig } from '../config.js';
+import { ensureDaemonRunning, daemonFetch, daemonFetchText } from '../daemon/rpc.js';
 
 // Resolve the project cwd the agent is actually working in. MCP "roots" are deprecated as of the
 // newest spec, so an explicit env var set by the client's MCP config is the primary mechanism —
@@ -13,43 +10,7 @@ import { loadConfig } from '../config.js';
 const CWD = process.env.ENGRAM_CWD || process.cwd();
 const TOOL = process.env.ENGRAM_TOOL || 'unknown-mcp-client';
 
-const config = loadConfig();
-const BASE_URL = `http://127.0.0.1:${config.port}`;
-
-async function ensureDaemonRunning(): Promise<void> {
-  try {
-    const res = await fetch(`${BASE_URL}/health`, { signal: AbortSignal.timeout(1500) });
-    if (res.ok) return;
-  } catch {
-    // fall through to spawn
-  }
-  console.error('[engram-mcp] daemon not reachable, starting it...');
-  const builtPath = fileURLToPath(new URL('../daemon/server.js', import.meta.url));
-  const child = existsSync(builtPath)
-    ? spawn(process.execPath, [builtPath], { detached: true, stdio: 'ignore', env: process.env })
-    : spawn('npx', ['tsx', fileURLToPath(new URL('../daemon/server.ts', import.meta.url))], {
-        detached: true,
-        stdio: 'ignore',
-        env: process.env,
-      });
-  child.unref();
-  // give it a moment to bind before the first tool call
-  await new Promise((resolve) => setTimeout(resolve, 1200));
-}
-
-async function callDaemon<T>(method: 'GET' | 'POST', pathAndQuery: string, body?: unknown): Promise<T> {
-  const res = await fetch(`${BASE_URL}${pathAndQuery}`, {
-    method,
-    headers: body ? { 'content-type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!res.ok) {
-    throw new Error(`engram daemon ${method} ${pathAndQuery} -> ${res.status}: ${JSON.stringify(data)}`);
-  }
-  return data as T;
-}
+const callDaemon = daemonFetch;
 
 function textResult(text: string) {
   return { content: [{ type: 'text' as const, text }] };
@@ -126,8 +87,7 @@ server.registerTool(
     inputSchema: {},
   },
   async () => {
-    const res = await fetch(`${BASE_URL}/context?cwd=${encodeURIComponent(CWD)}`);
-    const text = await res.text();
+    const text = await daemonFetchText(`/context?cwd=${encodeURIComponent(CWD)}`);
     return textResult(text);
   },
 );

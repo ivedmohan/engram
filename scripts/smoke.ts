@@ -10,6 +10,20 @@ import {
 
 async function main() {
   const slug = projectGraphSlug('smoke-test');
+
+  // FalkorDB persists to disk (docker volume) — without this, every re-run of this script accumulates
+  // more memories in the same graph instead of starting clean, and the assertions below would fail.
+  const { FalkorDB } = await import('falkordb');
+  const { loadConfig } = await import('../src/config.js');
+  const cfg = loadConfig();
+  const db = await FalkorDB.connect({ socket: { host: cfg.falkordb.host, port: cfg.falkordb.port } });
+  try {
+    await db.selectGraph(slug).delete();
+  } catch {
+    // graph didn't exist yet — fine
+  }
+  await db.close();
+
   const graph = await getGraph(slug);
 
   console.log(`[1/6] ensureIndexes() on ${slug}`);

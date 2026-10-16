@@ -128,11 +128,36 @@
     appears anywhere in history before re-pushing. No remote exposure occurred. This is a second,
     independent reason (beyond the original chat-paste) to rotate that key.
 
+- **2026-10-16 — T5 complete: Claude Code hooks built and verified with simulated real payloads.**
+  - Found the real JSONL transcript schema by reading THIS session's own transcript file directly
+    (`~/.claude/projects/-Users-vedmohan-Projects-engram/<session>.jsonl`) rather than guessing or
+    trusting docs that don't publish it. Built `src/transcripts/claude-code.ts` against that ground
+    truth; tested on the real 1630-line file, correctly extracted 160 clean messages (dropped thinking
+    blocks, tool_use blocks, tool_result feedback, and all harness bookkeeping types).
+  - Built `src/hooks/claude-code.ts` (SessionStart/Stop/SessionEnd/PreCompact handlers, local offset
+    file tracking at `~/.engram/offsets/`) and wired `engram hook <event>` into `src/cli.ts`.
+  - Refactored `ensureDaemonRunning`/`daemonFetch` out of `mcp/server.ts` into shared
+    `src/daemon/rpc.ts` (hooks need the same logic); re-ran the T3 live-MCP-client test afterward to
+    confirm no regression.
+  - **Verified the actual automatic-capture pitch**, not just the pieces in isolation: built a fake
+    transcript file in the confirmed real schema, seeded an existing "Relayer uses Express" memory,
+    then piped a simulated Stop-hook stdin payload into `engram hook stop`. It automatically produced
+    `SUPERSEDE` + `ADD` with zero manual `/ingest` calls — exactly what a real Claude Code session
+    would trigger.
+  - Built `src/install/claude-code.ts` (`mergeEngramHooks` hook-merging, `installClaudeCodeHooks`
+    file writer with backup, `installClaudeCodeMcp` shelling out to `claude mcp add`) and
+    `scripts/test-install.ts` (12/12 passing) — tested entirely against a `mkdtemp` scratch directory,
+    confirmed existing hooks are preserved, re-install is idempotent, and backups are written correctly.
+  - **Deliberately did not run `engram install claude-code` for real** against this repo's own
+    `.claude/settings.local.json` or `~/.claude/settings.json` — that would start firing hooks (and real
+    Groq API calls) on every future Stop event in live sessions, including this one. That's a live
+    behavior change worth flagging explicitly rather than silently activating mid-build.
+
 ## Next
 
-- T5: Claude Code hooks (SessionStart/Stop/SessionEnd) for automatic capture — this is what makes
-  ingestion actually automatic instead of requiring a manual `/ingest` curl call.
 - T6: `engram install cursor` / `engram install gemini-cli` config writers.
+- Decide with Ved whether to actually run `engram install claude-code` now (dogfooding, per CLAUDE.md
+  §6) or hold off until closer to the demo.
 
 ## Open questions
 
