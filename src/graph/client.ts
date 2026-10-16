@@ -1,17 +1,17 @@
 import { FalkorDB, type Graph } from 'falkordb';
+import { loadConfig } from '../config.js';
+import { ensureIndexes } from './schema.js';
 
 let dbPromise: ReturnType<typeof FalkorDB.connect> | null = null;
 const graphCache = new Map<string, Graph>();
 
 function getDb() {
   if (!dbPromise) {
+    const cfg = loadConfig();
     dbPromise = FalkorDB.connect({
-      username: process.env.FALKORDB_USERNAME || undefined,
-      password: process.env.FALKORDB_PASSWORD || undefined,
-      socket: {
-        host: process.env.FALKORDB_HOST || 'localhost',
-        port: Number(process.env.FALKORDB_PORT || 6379),
-      },
+      username: cfg.falkordb.username,
+      password: cfg.falkordb.password,
+      socket: { host: cfg.falkordb.host, port: cfg.falkordb.port },
     });
   }
   return dbPromise;
@@ -22,8 +22,14 @@ export async function getGraph(slug: string): Promise<Graph> {
   if (cached) return cached;
   const db = await getDb();
   const graph = db.selectGraph(slug);
+  await ensureIndexes(graph);
   graphCache.set(slug, graph);
   return graph;
+}
+
+export async function listGraphNames(): Promise<string[]> {
+  const db = await getDb();
+  return db.list();
 }
 
 export async function closeDb(): Promise<void> {

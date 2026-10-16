@@ -214,12 +214,24 @@ engram/
   Remember: wrap every embedding write in `vecf32($vec)` (see §3.4 gotcha), not just in vectorSearch.
 - **Done when:** `scripts/smoke.ts` creates a project, 3 memories, one supersession, and reads them all back. ✅ — also exercises `explainMemory`'s full supersession chain.
 
-### T2. Daemon (MUST)
-- [ ] T2.1 `config.ts`: `~/.engram/config.json` (port, provider, models, embedding dim), env overrides.
-- [ ] T2.2 `daemon/server.ts` + `routes.ts`: implement §5, bound to 127.0.0.1 only.
-- [ ] T2.3 `daemon/queue.ts`: simple in-memory FIFO with concurrency 1–2 and retry once, so `/ingest` returns immediately.
-- [ ] T2.4 `engram up` / `engram daemon` CLI command, plus a PID file at `~/.engram/daemon.pid`. Clients should auto-start the daemon if `/health` fails (best effort).
-- **Done when:** `curl` can remember, recall, and get context for a cwd.
+### T2. Daemon (MUST) — ✅ done 2026-10-16, every §5 endpoint verified live against FalkorDB
+- [x] T2.1 `config.ts`: `~/.engram/config.json` (port, provider, models, embedding dim), env overrides (env wins).
+- [x] T2.2 `daemon/server.ts` + `routes.ts`: all of §5 implemented (`/health`, `/sessions`, `/ingest`,
+  `/memories`, `/memories/supersede`, `/recall`, `/context`, `/forget`, `/timeline`, `/explain/:id`,
+  `/graph`, `/projects`), bound to 127.0.0.1 only via `@hono/node-server`'s `serve({fetch, port, hostname})`.
+  `/ingest` is accepted and queued but the actual extraction (T4) just logs — no LLM key configured yet.
+  **Bug found and fixed by actually curling it:** FalkorDB's full-text index is RediSearch-backed — a
+  plain multi-word string is parsed as an implicit AND/phrase match, so a natural-language recall query
+  (e.g. "what framework does the relayer use") matched nothing even though "relayer" alone matched fine.
+  Fixed with `util.ts#toFulltextQuery`: strip stop words, OR-join the remaining terms
+  (`relayer|framework`) — RediSearch OR syntax. After the fix, that exact query returns "Relayer uses
+  Hono" first, with the supersession-over-Express cited — this is the §2 demo's hero claim, confirmed
+  working end to end via curl, not just planned.
+- [x] T2.3 `daemon/queue.ts`: in-memory FIFO, concurrency 2, retry once, logs and drops after that.
+- [x] T2.4 `engram up` / `engram status` CLI commands (`src/cli.ts`), PID file at `~/.engram/daemon.pid`.
+  (Client auto-start-daemon-on-health-fail is deferred to T3/T5 — not needed for the daemon itself.)
+- **Done when:** `curl` can remember, recall, and get context for a cwd. ✅ — also forget, timeline,
+  explain, graph, and projects all verified via curl against a live `demo-relayer` test project.
 
 ### T3. MCP server (MUST)
 - [ ] T3.1 `mcp/server.ts` over stdio. VERIFIED (pin `@modelcontextprotocol/sdk` to a 1.x version, e.g. 1.32.1 — v2 exists on GitHub main but isn't the npm default yet, and will likely rename things again):

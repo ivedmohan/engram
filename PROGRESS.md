@@ -46,10 +46,28 @@
   - Also fixed: `scripts/smoke.ts` must call `closeDb()` in a `.finally()`, not after success only, or a
     thrown assertion leaves the FalkorDB socket open and the process hangs forever instead of exiting.
 
+- **2026-10-16 — T2 complete: daemon up, every REST endpoint verified live via curl.**
+  - Built `src/config.ts`, `src/daemon/queue.ts`, `src/daemon/routes.ts`, `src/daemon/server.ts`,
+    `src/cli.ts`, `src/util.ts` (hashing + fulltext query sanitizing).
+  - `client.ts` now calls `ensureIndexes()` automatically inside `getGraph()` and reads connection
+    settings from `config.ts` instead of raw env vars, so every caller gets indexes for free.
+  - Ran the actual §2 demo scenario through the live daemon in `/tmp/demo-relayer`: created the Express
+    memory, created the Hono memory, superseded Express, and `POST /recall` with the natural-language
+    query "what framework does the relayer use" correctly returns "Relayer uses Hono" with
+    `supersedes: {text: "Relayer uses Express"}` in the response — this is the exact claim the hackathon
+    demo depends on, confirmed working against curl, not just planned.
+  - Bug found via that same test: FalkorDB full-text search is RediSearch-backed and treats a
+    multi-word query as an implicit AND/phrase — natural questions matched nothing. Fixed with a
+    stop-word-stripping, OR-joining query sanitizer (`toFulltextQuery`) before every fulltext call.
+  - `/projects` initially returned `{slug}` only (grabbed an arbitrary first node instead of the actual
+    `:Project` node) — fixed with a direct `MATCH (p:Project) RETURN p` query.
+  - Verified `/forget` actually removes a memory from `/context` output, then restored the demo project
+    to its clean 3-memory state (Hono active, Express superseded, pnpm active) for future use.
+
 ## Next
 
-- T2: daemon (`config.ts`, `daemon/server.ts` + `routes.ts`, `daemon/queue.ts`, CLI `engram up`).
-- T3: MCP server (`mcp/server.ts`).
+- T3: MCP server (`src/mcp/server.ts`) — thin stdio client wrapping the daemon's REST API.
+- T4: extraction/reconciliation — blocked on an LLM provider key (see Open questions).
 
 ## Open questions
 
@@ -65,6 +83,9 @@
   your RETURN aliases and destructure by name, never by array index.
 - A Cypher write gated by a leading `MATCH` that finds nothing silently returns 0 rows, no error — check
   `result.data.length` when the write's success depends on that match succeeding.
+- FalkorDB full-text search is RediSearch-backed: a plain multi-word search string is an implicit
+  AND/phrase match. Natural-language recall queries need stop words stripped and terms OR-joined
+  (`word1|word2`) before calling `db.idx.fulltext.queryNodes`, or they return nothing.
 
 - `Memory.embedding` writes MUST use `vecf32($vec)` — a plain array silently fails to use the vector
   index (falls back to full scan with no error).

@@ -265,6 +265,11 @@ export async function explainMemory(graph: Graph, id: string) {
   };
 }
 
+export async function listEntityNames(graph: Graph): Promise<string[]> {
+  const result = await graph.query<Row<{ name: string }>>(`MATCH (e:Entity) RETURN DISTINCT e.name AS name`);
+  return (result.data ?? []).map((row) => row.name);
+}
+
 export async function graphDump(graph: Graph, limit = 500) {
   const result = await graph.query<Row<{ n: GraphNode; r: unknown; m: GraphNode | null }>>(
     `MATCH (n) OPTIONAL MATCH (n)-[r]->(m) RETURN n, r, m LIMIT $limit`,
