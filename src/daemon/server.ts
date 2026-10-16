@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { routes } from './routes.js';
-import { loadConfig, ensureEngramHome, ENGRAM_HOME } from '../config.js';
+import { loadConfig, ensureEngramHome, ENGRAM_HOME, loadDotEnv } from '../config.js';
 import { closeDb } from '../graph/client.js';
 import path from 'node:path';
 import { writeFileSync } from 'node:fs';
@@ -10,6 +10,7 @@ const app = new Hono();
 app.route('/', routes);
 
 export function startDaemon() {
+  loadDotEnv();
   ensureEngramHome();
   const config = loadConfig();
 

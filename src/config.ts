@@ -6,13 +6,15 @@ export interface EngramConfig {
   port: number;
   falkordb: { host: string; port: number; username?: string; password?: string };
   llmProvider: string;
+  /** Only Groq supports a user-supplied key for now (see PLAN.md T4.1). */
+  groqApiKey?: string;
   embedding: { provider: string; model: string; dim: number };
 }
 
 const DEFAULTS: EngramConfig = {
   port: 7777,
   falkordb: { host: 'localhost', port: 6379 },
-  llmProvider: 'anthropic',
+  llmProvider: 'groq',
   embedding: { provider: 'ollama', model: 'nomic-embed-text', dim: 768 },
 };
 
@@ -39,6 +41,7 @@ export function loadConfig(): EngramConfig {
       password: process.env.FALKORDB_PASSWORD || file.falkordb?.password,
     },
     llmProvider: process.env.LLM_PROVIDER || file.llmProvider || DEFAULTS.llmProvider,
+    groqApiKey: process.env.GROQ_API_KEY || file.groqApiKey,
     embedding: {
       provider: process.env.EMBEDDING_PROVIDER || file.embedding?.provider || DEFAULTS.embedding.provider,
       model: process.env.EMBEDDING_MODEL || file.embedding?.model || DEFAULTS.embedding.model,
@@ -49,4 +52,13 @@ export function loadConfig(): EngramConfig {
 
 export function ensureEngramHome(): void {
   if (!existsSync(ENGRAM_HOME)) mkdirSync(ENGRAM_HOME, { recursive: true });
+}
+
+/** Loads .env from the current working directory if present. Safe to call multiple times. */
+export function loadDotEnv(): void {
+  try {
+    process.loadEnvFile();
+  } catch {
+    // no .env file — fine, config falls back to defaults / real env vars
+  }
 }

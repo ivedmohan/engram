@@ -77,9 +77,32 @@
     `ENGRAM_TOOL=cursor` returns "Relayer uses Hono (supersedes: 'Relayer uses Express') — via
     claude-code" — confirms the full stdio MCP protocol path works, not just the HTTP layer underneath.
 
+- **2026-10-16 — T4.1 done: Groq provider built and tested live against the real API.**
+  - Ved provided a Groq API key (free tier) and asked for Kimi K2 specifically. Built `src/llm/provider.ts`
+    (provider-agnostic `LlmProvider`/`EmbeddingProvider` interfaces + factory) and `src/llm/groq.ts`
+    (`groq-sdk`-based implementation). Config: `LLM_PROVIDER=groq` is now the default, `GROQ_API_KEY`
+    readable from either `.env`/env or `~/.engram/config.json` (`groqApiKey`) — Groq is the only
+    provider with a user-supplied-key path for now, by design.
+  - Added `process.loadEnvFile()` (built into Node 24, no `dotenv` dependency needed) to `config.ts`,
+    called at daemon startup.
+  - **Kimi K2 isn't actually available on this account**: both `moonshotai/kimi-k2-instruct-0905` and
+    the undated `moonshotai/kimi-k2-instruct` 404'd with "does not exist or you do not have access to
+    it." A live `GET /openai/v1/models` call confirmed the key's actual available models are
+    `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `qwen/qwen3.8-27b`, plus some audio/guard models — no
+    Kimi K2. Switched the default to `openai/gpt-oss-120b`, which is actually the stronger pick anyway
+    (Groq's docs confirm it's on the strict `json_schema` whitelist for guaranteed-valid JSON; Kimi K2
+    would only have gotten best-effort `json_object` mode).
+  - Live-tested `GroqProvider.complete()` with the exact §2 demo conversation line and got back
+    correctly-classified JSON (one `decision`, one `preference`, with entities tagged) — confirms the
+    provider call works end to end, though the full extract→reconcile→write pipeline (T4.4) isn't
+    wired yet.
+  - **Security note:** the Groq API key was pasted directly into chat. It's stored only in the
+    gitignored local `.env` (confirmed not tracked by git), never committed or logged elsewhere. Ved
+    should rotate it in the Groq console at his convenience since it's now in that chat's history.
+
 ## Next
 
-- T4: extraction/reconciliation — blocked on an LLM provider key (see Open questions below).
+- T4.2–T4.6: redact.ts, prompts.ts, extract/reconcile/write pipeline wired into the queue, seed-demo.ts.
 - T5: Claude Code hooks (SessionStart/Stop/SessionEnd) for automatic capture.
 - T6: `engram install cursor` / `engram install gemini-cli` config writers.
 
@@ -100,6 +123,9 @@
 - FalkorDB full-text search is RediSearch-backed: a plain multi-word search string is an implicit
   AND/phrase match. Natural-language recall queries need stop words stripped and terms OR-joined
   (`word1|word2`) before calling `db.idx.fulltext.queryNodes`, or they return nothing.
+- A model being documented on Groq's site doesn't mean a given API key has access to it — Kimi K2 is
+  real and documented but 404'd on this key. Always confirm with a live `GET /openai/v1/models` call
+  against the actual key in use before hardcoding a model id.
 
 - `Memory.embedding` writes MUST use `vecf32($vec)` — a plain array silently fails to use the vector
   index (falls back to full scan with no error).

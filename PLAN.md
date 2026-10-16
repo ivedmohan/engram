@@ -254,13 +254,33 @@ engram/
   exact §2 demo claim, through the real MCP protocol end to end.
 
 ### T4. Extraction + reconciliation (MUST) — target: Sat 17 Oct
-- [ ] T4.1 `llm/provider.ts` interface + at least ONE working API provider + `ollama.ts` for embeddings. Pick whichever key Ved has; make the JSON output robust (strip code fences, validate with zod, retry once).
+- [x] T4.1 `llm/provider.ts` interface + Groq provider — ✅ done 2026-10-16, tested live.
+  **Provider decision:** Groq, BYOK (user supplies their own `GROQ_API_KEY`; this is the only
+  provider with a user-supplied-key path for now — not Anthropic/OpenAI/Gemini).
+  **Model decision, found by actually calling the API, not by trusting docs:** research recommended
+  `moonshotai/kimi-k2-instruct-0905` (Kimi K2), but that model id 404s ("does not exist or you do not
+  have access to it") on this account/key — so does the undated `moonshotai/kimi-k2-instruct`. A live
+  `GET /openai/v1/models` call showed Kimi K2 isn't in this key's available model list at all (only
+  `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `qwen/qwen3.8-27b`, and a few audio/guard models are).
+  **Defaulted to `openai/gpt-oss-120b` instead** — this is arguably the better choice anyway: Groq's
+  docs confirm gpt-oss-120b is on the **strict `json_schema` whitelist** (100% guaranteed valid JSON),
+  while Kimi K2 is only best-effort `json_object` mode. Override via `GROQ_MODEL` env var if a given
+  account does have Kimi K2 access. Live-tested: fed the exact §2 demo line ("Let's switch the relayer
+  from Express to Hono, and we always use pnpm in this repo") through `GroqProvider.complete()` with
+  `json_object` mode and got back correctly-classified JSON — one `decision` (Express→Hono) and one
+  `preference` (pnpm), with entities tagged. Zod validation + retry-once (per this task's own
+  requirement) still needs wiring into the real `extract.ts` pipeline (T4.4) — this only proves the
+  provider call itself works end to end against live Groq, not the full pipeline yet.
+  `ollama.ts` for embeddings: not yet built — deferred, see note on T4.5 below.
 - [ ] T4.2 `memory/redact.ts`: regexes for common key formats (`sk-`, `sk-ant-`, `AIza`, `ghp_`, `xox[bp]-`, AWS `AKIA`, JWTs, PEM blocks, 0x-prefixed 64-hex private keys, 12/24-word mnemonics, `KEY=value` lines in env-like text). Unit-test it.
 - [ ] T4.3 `prompts.ts`: extraction prompt + reconciliation prompt (§6.1). Include 3–4 few-shot examples, including a supersede example (Express → Hono).
 - [ ] T4.4 `extract.ts` → `reconcile.ts` → `write.ts` wired into the queue.
 - [ ] T4.5 `recall.ts` implementing §6.2.
 - [ ] T4.6 `scripts/seed-demo.ts`: reproduces the §2 demo state without LLM calls (use fixed embeddings or call embed only).
 - **Done when:** feeding the §2 conversation text to `/ingest` produces the right memories and a SUPERSEDES edge, and `/recall` for "relayer framework" returns Hono first with provenance.
+  **Note:** the recall half of this is already true today (see T2) via fulltext+entity-expand, with no
+  embeddings involved — T4.5's embedding-based vector search is an enhancement to ranking quality, not
+  a prerequisite for recall to work at all for the demo.
 
 ### T5. Claude Code integration (MUST) — automatic capture
 - [ ] T5.1 VERIFIED (code.claude.com/docs/en/hooks): all five events exist exactly as assumed, plus a larger set
