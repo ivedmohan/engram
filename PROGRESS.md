@@ -271,11 +271,22 @@
     view, the `SUPERSEDES` edge (now orange), badges, and the detail panel with its supersession chain
     all render correctly in the new palette. Replaced `docs/web-ui.jpg` with a fresh screenshot.
 
+- **2026-10-17 — built the "link to show": a Claude Artifact installation/overview page.**
+  Published at https://claude.ai/artifact/7YnddkuAn1PFAz56MHMD6k (private by default — Ved shares it
+  from the page's share menu when ready). Same Mistral design tokens as the real UI for visual
+  consistency: hero with the one-line pitch and a copy-able one-line install command, the real
+  restyled-UI screenshot embedded (not a mockup), three value-prop cards condensed from the README,
+  a 6-step installation guide with dark code blocks and per-step copy buttons, the `seed-demo`
+  no-LLM fallback, and the brand's actual "sunset stripe" signature gradient band at the foot of the
+  page (DESIGN.md calls this out as the single most load-bearing brand element — "don't drop it from
+  any page"). Verified by actually loading the published page and scrolling through it, not just
+  publishing and assuming — confirmed the embedded screenshot loads, code blocks render correctly, and
+  the sunset stripe shows at the bottom.
+  Not added to `README.md`: the artifact is private by default, so linking it publicly before Ved
+  chooses to share it would be presumptuous — he can add the link himself once (if) he shares it.
+
 ## Next
 
-- Still pending: the "SDK-style showcase page with an installation guide" Ved actually asked for as
-  "a link to show" — building next as a Claude Artifact, using the same Mistral design tokens for
-  visual consistency with the now-restyled real UI.
 - **Every autonomously-doable item in T0–T8 is now done.** What's left all genuinely needs Ved:
   - T8.2 (demo video) — recording/narrating isn't something I can do.
   - T8.3 (deploy decision) — a judgment call, possibly needs a FalkorDB Cloud account.
