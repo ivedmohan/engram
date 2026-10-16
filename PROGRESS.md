@@ -64,10 +64,24 @@
   - Verified `/forget` actually removes a memory from `/context` output, then restored the demo project
     to its clean 3-memory state (Hono active, Express superseded, pnpm active) for future use.
 
+- **2026-10-16 — T3 complete: MCP server built and verified with a real MCP client over stdio.**
+  - Built `src/mcp/server.ts`: `McpServer` + `registerTool()` for all 5 tools (`engram_recall`,
+    `engram_remember`, `engram_project_context`, `engram_forget`, `engram_explain`), each a thin wrapper
+    calling the daemon's REST API. Reads `ENGRAM_CWD`/`ENGRAM_TOOL` env vars (set by the client's MCP
+    config) as the primary cwd/tool-identity mechanism, falling back to `process.cwd()`. Auto-starts the
+    daemon (spawning the built `.js` if present, else `npx tsx` on the `.ts` source for dev) if `/health`
+    doesn't respond.
+  - Verified with a disposable test harness (`Client` + `StdioClientTransport` from the SDK itself,
+    simulating what Cursor/Gemini CLI would do) rather than the Inspector's browser UI: `listTools()`
+    returns all 5 tools, and `engram_recall({query: "what framework does the relayer use"})` with
+    `ENGRAM_TOOL=cursor` returns "Relayer uses Hono (supersedes: 'Relayer uses Express') — via
+    claude-code" — confirms the full stdio MCP protocol path works, not just the HTTP layer underneath.
+
 ## Next
 
-- T3: MCP server (`src/mcp/server.ts`) — thin stdio client wrapping the daemon's REST API.
-- T4: extraction/reconciliation — blocked on an LLM provider key (see Open questions).
+- T4: extraction/reconciliation — blocked on an LLM provider key (see Open questions below).
+- T5: Claude Code hooks (SessionStart/Stop/SessionEnd) for automatic capture.
+- T6: `engram install cursor` / `engram install gemini-cli` config writers.
 
 ## Open questions
 

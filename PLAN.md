@@ -233,7 +233,7 @@ engram/
 - **Done when:** `curl` can remember, recall, and get context for a cwd. ✅ — also forget, timeline,
   explain, graph, and projects all verified via curl against a live `demo-relayer` test project.
 
-### T3. MCP server (MUST)
+### T3. MCP server (MUST) — ✅ done 2026-10-16, verified with a real MCP client connection over stdio
 - [ ] T3.1 `mcp/server.ts` over stdio. VERIFIED (pin `@modelcontextprotocol/sdk` to a 1.x version, e.g. 1.32.1 — v2 exists on GitHub main but isn't the npm default yet, and will likely rename things again):
   `import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'`, `import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'`.
   Register tools with `server.registerTool(name, { description, inputSchema }, handler)` — NOT the older `server.tool(...)` form, which is superseded. `inputSchema` takes a plain ZodRawShape (no need to wrap in `z.object()`).
@@ -246,7 +246,12 @@ engram/
   - `engram_explain(memoryId)`: provenance + supersession chain.
 - [ ] T3.3 The MCP server uses `process.cwd()` (the client launches it in the project), with an `ENGRAM_CWD` env override. VERIFIED: MCP "roots" are **deprecated** as of the newest spec (2026-07-28) — official guidance is to use tool params/config/env vars instead, so treat `ENGRAM_CWD` / an explicit `cwd` in the client's MCP config as the **primary** mechanism, not a fallback. Cursor and Gemini CLI both support passing `cwd`/`env` per-server; Claude Desktop has no workspace concept at all (see T6.4) — treat Desktop sessions as `engram_global`-scope only.
 - [ ] T3.4 Tool identity: `ENGRAM_TOOL` env var set by each client's config (e.g. `cursor`), so provenance is correct.
-- **Done when:** MCP Inspector (`npx @modelcontextprotocol/inspector`) lists and runs all tools.
+- **Done when:** MCP Inspector (`npx @modelcontextprotocol/inspector`) lists and runs all tools. ✅ verified
+  with a scripted `Client` + `StdioClientTransport` connection instead (more reliable to check headlessly
+  than the Inspector's browser UI) — `listTools()` returns all 5 tools, and calling `engram_recall` with
+  `ENGRAM_TOOL=cursor ENGRAM_CWD=/tmp/demo-relayer` and the query "what framework does the relayer use"
+  returns `[decision] Relayer uses Hono (supersedes: "Relayer uses Express") — via claude-code" — the
+  exact §2 demo claim, through the real MCP protocol end to end.
 
 ### T4. Extraction + reconciliation (MUST) — target: Sat 17 Oct
 - [ ] T4.1 `llm/provider.ts` interface + at least ONE working API provider + `ollama.ts` for embeddings. Pick whichever key Ved has; make the JSON output robust (strip code fences, validate with zod, retry once).
