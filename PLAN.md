@@ -465,6 +465,24 @@ engram/
   though a proper demo video still needs to be recorded (T8.2).
 - [ ] T8.2 Demo video (2–3 min) following §2 exactly. Use `seed-demo.ts` as a fallback.
   **Blocked on Ved** — recording/narrating a video isn't something that can be done autonomously.
+  **Readiness check, 2026-10-17:** checked what's actually installed on this machine before claiming
+  readiness either way.
+  - Claude Code: installed (obviously). Cursor: `Cursor.app` is installed, but no `cursor` shell
+    command on PATH (normal — the app itself opens fine from Spotlight/Finder regardless). Gemini CLI:
+    **not installed at all** — would need `npm install -g` before it could be in the recording.
+  - `engram install claude-code`/`cursor`/`gemini-cli` have **not been run for real** against this
+    machine's actual tool configs — deliberately held back since T5.4 (would start firing real hooks
+    and Groq calls on live sessions without an explicit go-ahead). This means the exact §2 flow — a
+    real live Claude Code session, ending it, switching to a real Cursor window and asking it a
+    question — has never actually been exercised end to end; only simulated (fake hook stdin, a
+    scripted MCP client standing in for Cursor).
+  - **What IS fully ready, reliably, right now:** `npm run seed-demo` + the local web UI (polished,
+    Mistral-styled, visually verified) + a live `/recall` call — this is explicitly the plan's own
+    documented fallback ("rely on the seed script for the video") for exactly this situation, and it
+    doesn't depend on any installs happening correctly live during a recording.
+  - **Verdict: not yet ready for the literal live 3-tool recording**, but fully ready for a narrated
+    recording built on the seed script + web UI + a real MCP recall call — which is a safer choice for
+    a recording anyway (no risk of a live LLM call behaving oddly on camera).
 - [ ] T8.3 Deployment: since this is local-first, deploy a **read-only demo** of the web UI against FalkorDB Cloud with the seeded graph (app.falkordb.cloud), OR clearly document local setup and rely on the video. Decide by Sun noon.
   **Blocked on Ved** — needs a decision (and possibly a FalkorDB Cloud account) only he can make/provide.
 - [x] T8.4 `BLOG.md` — ✅ done 2026-10-17. Grounded in the real build log (`PROGRESS.md`), not generic

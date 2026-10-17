@@ -315,6 +315,15 @@
     Artifact is still live at the URL shared earlier if useful as a private preview, but `site/` is
     the one Ved can actually deploy under his own domain.
 
+- **2026-10-17 — deployed `site/` to Vercel via the CLI, live now.**
+  Confirmed `vercel` CLI already installed (Homebrew, v50.9.6) and already authenticated as `ivedmohan`
+  — no login step needed. `cd site && vercel --prod --yes` linked a new project
+  (`ved-mohans-projects-486ed2df/site`) and deployed non-interactively. Live at
+  **https://site-sigma-six-73.vercel.app** (also aliased at the longer
+  `site-bt5r1apso-ved-mohans-projects-486ed2df.vercel.app` deployment URL). Verified the actual
+  production deployment in a real browser, not just a 200 status check: screenshot loads, fonts render,
+  zero console errors — same as the local verification.
+
 ## Next
 
 - **Every autonomously-doable item in T0–T8 is now done.** What's left all genuinely needs Ved:
