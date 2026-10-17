@@ -331,6 +331,24 @@
   an optional upgrade path (install Engram into Cursor for a real live chat demo instead of a terminal
   curl) with the actual command and an honest risk note — left as Ved's call, not run.
 
+- **2026-10-17 — connected Claude Desktop, and found T6.4's installer is obsolete for the actual
+  product installed.** Ved asked to "share the chat with Claude Desktop." Before running the existing
+  `src/install/claude-desktop.ts`, read the real `claude_desktop_config.json` on this machine — it has
+  no `mcpServers` key at all; it's `preferences`/`coworkUserFilesPath`/`epitaxyPrefs`, because this
+  machine's "Claude" app is a unified product sharing MCP config with Claude Code CLI via
+  `~/.claude.json`, not a separate standalone Desktop app with its own config file. Verified this by
+  running `claude mcp add --scope user` directly and confirming via `claude mcp list` that it
+  registered and connected — that's the real mechanism now, not the file T6.4 built.
+  Registered Engram with `claude mcp add --scope user engram -e ENGRAM_TOOL=claude-desktop --
+  node dist/mcp/server.js` (MCP tools only, user-wide — available in every Claude Code/Desktop session
+  on this machine from now on). Deliberately did NOT install the global `~/.claude/settings.json` hooks
+  alongside it — that's the separate, bigger "automatic capture on every future session" decision still
+  open since T5.4, not something to bundle in without a clearer ask.
+  `src/install/claude-desktop.ts` is left in the repo (not deleted) as the standalone-Desktop-app
+  fallback in case that shape is what other users'/platforms' Claude Desktop actually uses — but it
+  should be verified against the real config file on whatever machine it's used on, the same way this
+  was caught, not assumed to work.
+
 ## Next
 
 - **Every autonomously-doable item in T0–T8 is now done.** What's left all genuinely needs Ved:

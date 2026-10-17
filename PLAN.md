@@ -389,11 +389,26 @@ engram/
   Claude Code's `.local.json` convention, no gitignored variant is confirmed for Gemini CLI, so project
   scope here really is shared with anyone who clones the repo — the CLI prints a note about this.
 - [ ] T6.3 Antigravity: **DEMOTED to stretch, do not plan the demo around it.** RESEARCH confirmed it's a real, current Google IDE with MCP support, but only UI-driven ("MCP Store") remote/cloud connectors (Workspace, BigQuery, AlloyDB) are documented — no public config file path or JSON shape for a custom local stdio server was found. Treat as unresolved; only attempt if time remains and you can test it directly.
-- [x] T6.4 `engram install claude-desktop` (`src/install/claude-desktop.ts`) — ✅ done. No `--scope`
-  (Desktop has no per-project workspace). **Known, documented limitation:** without `ENGRAM_CWD`, the
-  MCP server falls back to `process.cwd()` rather than cleanly defaulting to global-only scope —
-  fixing that needs a small change to `mcp/server.ts`'s default-scope logic, not made since Desktop is
-  explicitly lower priority than Claude Code/Cursor/Gemini CLI.
+- [x] T6.4 `engram install claude-desktop` (`src/install/claude-desktop.ts`) — built, but **confirmed
+  obsolete for the actual Claude Desktop product installed, 2026-10-17.** This file writes to
+  `~/Library/Application Support/Claude/claude_desktop_config.json` under an `mcpServers` key, per the
+  original T3/T6 research. But the real `claude_desktop_config.json` on this machine (inspected
+  directly) has a completely different shape — `preferences`, `coworkUserFilesPath`, `epitaxyPrefs`,
+  no `mcpServers` key anywhere — because the current Claude app is a unified product that shares MCP
+  config with Claude Code CLI via `~/.claude.json`, not a separate standalone "Claude Desktop" with its
+  own config file. Confirmed by running `claude mcp add --scope user` and seeing it register
+  successfully (`claude mcp list` showed it connected) — **this is the actual correct mechanism**, not
+  `src/install/claude-desktop.ts`. That file is now dead code for this product generation; left in the
+  repo rather than deleted since the older standalone-Desktop shape may still be what ships for other
+  users/platforms, but it should not be assumed to work without checking the target machine's actual
+  config file first, the same way this was caught.
+  **What was actually done:** `claude mcp add --scope user engram -e ENGRAM_TOOL=claude-desktop --
+  node dist/mcp/server.js` — registers the MCP tools (not the automatic session hooks) at user scope,
+  so `engram_recall`/`engram_remember` are available in every Claude Code/Desktop session on this
+  machine going forward, same lower-risk "agent decides when to call it" pattern as Cursor/Gemini CLI.
+  Deliberately did NOT also install the global hooks (`~/.claude/settings.json`) — that's the bigger,
+  separate decision (automatic capture + Groq calls on every future session) already being held open
+  pending Ved's explicit go-ahead since T5.4.
 - [x] T6.5 Rules snippet (`src/install/rules-snippet.ts`, `ensureRulesSnippet`) — ✅ done, opt-in via a
   `--with-rules` flag on `install cursor`/`install gemini-cli` (matches the plan's "can offer to
   append it" — never forced). Appends (never overwrites) a short "call engram_recall at the start of a
