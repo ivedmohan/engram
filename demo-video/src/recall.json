@@ -1,0 +1,23 @@
+{
+    "query": "what framework does the relayer use",
+    "projectSlug": "demo-relayer-a9011f1f",
+    "results": [
+        {
+            "id": "01M52YQADDP6682W3854VS91B6",
+            "text": "Relayer uses Hono",
+            "kind": "decision",
+            "status": "active",
+            "confidence": 0.8,
+            "createdAt": 1792174434733,
+            "validFrom": 1792174434733,
+            "hash": "seed-hono",
+            "via": "fulltext",
+            "tool": "claude-code",
+            "sessionStartedAt": 1792174434733,
+            "supersedes": {
+                "text": "Relayer uses Express",
+                "at": 1792174434733
+            }
+        }
+    ]
+}

@@ -6,7 +6,7 @@ export interface EngramConfig {
   port: number;
   falkordb: { host: string; port: number; username?: string; password?: string };
   llmProvider: string;
-  /** Only Groq supports a user-supplied key for now (see PLAN.md T4.1). */
+  /** Only Groq supports a user-supplied key for now. */
   groqApiKey?: string;
   embedding: { provider: string; model: string; dim: number };
 }

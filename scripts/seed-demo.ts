@@ -1,5 +1,5 @@
 /**
- * Reproduces the PLAN.md §2 demo scenario directly against the graph layer — no LLM calls, no
+ * Reproduces the README's "See it work" demo scenario directly against the graph layer — no LLM calls, no
  * daemon required running. This is the reliability fallback for recording the demo video: if live
  * extraction misbehaves (LLM non-determinism, rate limits, no network), this still produces the
  * exact end state the demo narrates.

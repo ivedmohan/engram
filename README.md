@@ -2,6 +2,8 @@
 
 **One memory, read by every AI tool on your machine.**
 
+🌐 **Website:** [engram-folkdb.vercel.app](https://engram-folkdb.vercel.app/) · 🎬 **Demo video:** [`demo-video/`](demo-video/)
+
 Decide something in Claude Code and Cursor still thinks it's outdated. Tell Cursor a preference and Gemini CLI never finds out. Every AI coding tool you use starts from zero, and the memory tools that *do* exist usually just hand agents back whatever's most similar — even if it's a decision you already reversed.
 
 Engram is a local-first memory layer backed by a graph. Every tool on your machine reads and writes the same memory graph, stored in [FalkorDB](https://www.falkordb.com/) running on your own hardware. Because it's a graph, not a flat list of embeddings:
@@ -101,6 +103,12 @@ Everything lives on your machine. FalkorDB runs in a local Docker container with
 
 ## Status
 
-All of T0–T7 in [`PLAN.md`](PLAN.md) are built and verified — not just type-checked, but exercised against a live FalkorDB instance, a real MCP client connection, simulated real Claude Code hook payloads, and a real browser session. See [`PROGRESS.md`](PROGRESS.md) for the full build log, including bugs found and fixed along the way.
+Everything above is built and verified — not just type-checked, but exercised against a live FalkorDB instance, a real MCP client connection, simulated real Claude Code hook payloads, and a real browser session. `npm test` runs the graph smoke test, secret-redaction tests, and installer tests. [`BLOG.md`](BLOG.md) tells the story of the build.
+
+The [demo video](demo-video/) is a [Remotion](https://www.remotion.dev/) project with real UI captures and an ElevenLabs voiceover.
 
 Built for the FalkorDB Graph Hacks hackathon. The FalkorDB graph layer is new work written during the event.
+
+## License
+
+[MIT](LICENSE)

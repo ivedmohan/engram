@@ -4,6 +4,7 @@
   "description": "Local-first, graph-based shared memory for every AI tool on your machine.",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "bin": {
     "engram": "dist/cli.js"
   },

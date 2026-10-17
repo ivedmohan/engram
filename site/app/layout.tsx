@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { Newsreader, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-// Type and palette from DESIGN.md at the repo root (Mistral AI brand analysis, fetched via
-// `npx getdesign add mistral.ai`) — Newsreader stands in for the brand's "PP Editorial Old"
-// (a paid font not available via next/font/google), Inter and JetBrains Mono are exact matches.
+// Same type and palette as the local web UI (src/web/index.html): Newsreader for display,
+// Inter for body, JetBrains Mono for code.
 const newsreader = Newsreader({
   variable: "--font-display",
   subsets: ["latin"],

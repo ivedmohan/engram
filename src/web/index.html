@@ -8,11 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
 <style>
   /*
-    Palette and type from DESIGN.md (Mistral AI brand analysis, via `npx getdesign add mistral.ai`).
-    Light-only by design: the source brand book documents no dark-mode palette ("Known Gaps"), and
-    Mistral's own guidance is "don't introduce additional accent colors beyond the orange/yellow/cream
-    sunset palette" — so this page uses canvas/cream/orange exclusively rather than inventing a second
-    accent to carry graph-node semantics; distinction instead comes from fill/border/dash treatment.
+    Light-only, cream/orange palette. A single accent colour on purpose: graph-node kinds are told
+    apart by fill, border and dash treatment rather than by extra accent colours.
   */
   :root{
     --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#FFF8E0; --border:#E5E5E5; --border-strong:#C7C7C7;

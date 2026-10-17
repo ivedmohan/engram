@@ -1,0 +1,9 @@
+[
+ {"id":"01_hook","text":"Every AI coding tool you use starts from zero. Decide something in Claude Code, and Cursor has no idea it happened. Tell Cursor a preference, and Gemini CLI never finds out. Engram fixes that, with one memory graph that every tool on your machine reads and writes."},
+ {"id":"02_claude","text":"Here's the scenario. In Claude Code, I tell the agent: let's switch the relayer from Express to Hono, and we always use pnpm in this repo. When the session ends, a Claude Code hook hands the conversation to Engram automatically. Nobody has to say, remember this."},
+ {"id":"03_seed","text":"Engram redacts secrets, extracts atomic memories with one LLM call, and reconciles them against what's already in the graph. For this recording, the seed script reproduces that exact end state, so the demo doesn't depend on a live model call."},
+ {"id":"04_recall","text":"Now a different tool, Cursor or Gemini CLI, asks over MCP: what framework does the relayer use? Engram answers Hono, and notes that it replaced Express. No one had to explain anything twice."},
+ {"id":"05_graph","text":"This is the actual memory graph, stored in FalkorDB. And here's the part a vector store can't do. Hono wasn't just added. A supersedes edge says it replaced Express, and why. The old decision is still there for history, but no agent gets handed a choice you've already reversed."},
+ {"id":"06_timeline","text":"Every memory carries provenance: which tool, which session, and when. All of it scoped to the project you're in, with a separate global graph for preferences that follow you everywhere."},
+ {"id":"07_close","text":"Engram is local first. FalkorDB runs on your own machine, and secrets are stripped before the one call that leaves it. One memory, read by every AI tool you use."}
+]

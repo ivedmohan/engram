@@ -1,7 +1,7 @@
 # Engram — marketing/install site
 
 The "link to show" for Engram: hero, real screenshot of the actual running web UI, and a 6-step
-installation guide, styled with Mistral AI's brand system (see `../DESIGN.md`). Plain Next.js App
+installation guide, sharing the Engram web UI's cream-and-orange palette. Plain Next.js App
 Router, no CMS, no API routes — just a static page.
 
 ## Run locally

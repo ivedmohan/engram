@@ -1,6 +1,5 @@
-/* Palette & type from DESIGN.md (Mistral AI brand analysis) — same system as the real Engram web
-   UI, so this site and the product it introduces look like one thing. Light-only: the brand book
-   documents no dark mode, and explicitly discourages accent colors beyond orange/yellow/cream. */
+/* Same palette & type as the real Engram web UI (src/web/index.html), so this site and the product
+   it introduces look like one thing. Light-only, with a single orange accent. */
 :root {
   --canvas: #ffffff;
   --cream: #fff8e0;
