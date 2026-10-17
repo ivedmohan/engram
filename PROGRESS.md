@@ -324,6 +324,13 @@
   production deployment in a real browser, not just a 200 status check: screenshot loads, fonts render,
   zero console errors — same as the local verification.
 
+- **2026-10-17 — wrote `DEMO_SCRIPT.md`: a literal shot-by-shot recording script for T8.2.**
+  Timed to 2–3 min, built on the safe seed-demo + web UI path (no live LLM call on camera), with macOS
+  recording instructions (Cmd+Shift+5) and exact narration lines. Verified the scripted recall `curl`
+  command actually returns the expected answer right now, not just that it looks plausible. Includes
+  an optional upgrade path (install Engram into Cursor for a real live chat demo instead of a terminal
+  curl) with the actual command and an honest risk note — left as Ved's call, not run.
+
 ## Next
 
 - **Every autonomously-doable item in T0–T8 is now done.** What's left all genuinely needs Ved:
