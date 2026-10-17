@@ -285,6 +285,36 @@
   Not added to `README.md`: the artifact is private by default, so linking it publicly before Ved
   chooses to share it would be presumptuous — he can add the link himself once (if) he shares it.
 
+- **2026-10-17 — built `site/`: a real, Vercel-deployable Next.js app for the "link to show."**
+  Ved clarified he didn't want the Claude Artifact — he wants an actual Next.js app he can deploy to
+  Vercel himself. Scaffolded with `create-next-app` (TypeScript, App Router, no Tailwind — hand-written
+  CSS instead, to stay minimal) at `site/`, nested inside this repo (its own `package.json`/
+  `node_modules`/`.gitignore`, doesn't touch the main project's dependencies).
+  - Ported the same content/design as the Artifact version (hero, real screenshot, 3 value-prop cards,
+    6-step install guide with copy buttons, `seed-demo` fallback, the brand's sunset-stripe signature
+    element) into proper React components: `app/page.tsx` (server component), `app/CodeBlock.tsx`
+    (server), `app/CopyButton.tsx` (`'use client'`, the only interactive piece — clipboard access
+    needs a client component). Fonts via `next/font/google` (Newsreader/Inter/JetBrains Mono, same as
+    the real UI and `DESIGN.md`).
+  - **Real bug found and fixed, not just `tsc`-level:** `next build` warned that Turbopack mis-detected
+    the workspace root because the parent `engram` repo has its own `package-lock.json` one level up
+    from `site/`'s. Fixed with an explicit `turbopack.root` in `next.config.ts` — matters doubly here
+    since Vercel builds from a clean checkout, where an inferred-wrong root could misresolve files in
+    ways that wouldn't necessarily surface locally the same way.
+  - **Verified the actual production build, not just dev mode:** `npm run build` (clean, no warnings
+    after the turbopack fix) → `npm run start` → loaded in a real browser (port 3001, since FalkorDB's
+    own Browser UI already owns :3000 via `docker-compose.yml` — did not touch that). Confirmed: zero
+    console errors, the embedded screenshot loads via `next/image`, and the copy-to-clipboard button
+    actually works (showed "Copied" feedback on click).
+  - `npm install` reported 5 high-severity advisories, all in the `eslint-config-next` → `braces` dev
+    dependency chain (glob-matching, lint-time only, never shipped in the production bundle) — left
+    as-is rather than force-downgrading `eslint-config-next` for a non-issue.
+  - Wrote `site/README.md` with the actual deploy steps (Vercel "Root Directory" = `site`, since this
+    is a monorepo subdirectory, not its own repo — the one setting that isn't auto-detected).
+  - Did NOT commit the original Claude Artifact as a replacement for this — both now exist; the
+    Artifact is still live at the URL shared earlier if useful as a private preview, but `site/` is
+    the one Ved can actually deploy under his own domain.
+
 ## Next
 
 - **Every autonomously-doable item in T0–T8 is now done.** What's left all genuinely needs Ved:

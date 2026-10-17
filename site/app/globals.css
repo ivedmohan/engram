@@ -1,0 +1,56 @@
+/* Palette & type from DESIGN.md (Mistral AI brand analysis) — same system as the real Engram web
+   UI, so this site and the product it introduces look like one thing. Light-only: the brand book
+   documents no dark mode, and explicitly discourages accent colors beyond orange/yellow/cream. */
+:root {
+  --canvas: #ffffff;
+  --cream: #fff8e0;
+  --cream-deep: #fff0c2;
+  --beige-deep: #e6d5a8;
+  --ink: #1f1f1f;
+  --steel: #6a6a6a;
+  --hairline: #e5e5e5;
+  --hairline-strong: #c7c7c7;
+  --primary: #fa520f;
+  --primary-deep: #cc3a05;
+  --sunshine-700: #ffa110;
+  --sunshine-500: #ffb83e;
+  --yellow: #ffd900;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+a {
+  color: var(--primary);
+}
+
+::selection {
+  background: var(--cream-deep);
+}
+
+.mono {
+  font-family: var(--font-mono), monospace;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  text-wrap: balance;
+  margin: 0;
+}
